@@ -1,0 +1,96 @@
+COMPILER Comp
+
+CHARACTERS
+
+DIGIT = "0123456789".
+LETTER = 'A' .. 'Z' + 'a' .. 'z'.
+LOWER = 'a' .. 'z'.
+UPPER = 'A'..'Z'.
+VALIDCHAR = ANY - '\'' - '\\' - '\n' - '\r'.
+ANYCHAR = ANY.
+
+CR = '\r'.
+LF = '\n'.
+HT = '\t'.
+FF = '\f'.
+
+TOKENS
+
+ID = (LOWER | '_') {LETTER | DIGIT | '_'}.
+INTCONS = DIGIT {DIGIT}.
+FLOATCONS = DIGIT {DIGIT} '.' DIGIT {DIGIT}.
+CHARCONS = "'" (VALIDCHAR | "\\\'" | "\\\\" | "\\0" | "\\a" | "\\b" | "\\f" | "\\n"
+| "\\r" | "\\t" | "\\v" | "\\u") "'".
+GENT = UPPER.
+
+LET = "let".
+IN = "in".
+FOR = "for".
+OTHERWISE = "otherwise".
+IFT = "if".
+THEN = "then".
+ELSE = "else".
+DO = "do".
+MAIN = "main".
+LAMBDA = "lambda".
+READ = "read".
+PRINT = "print".
+TRUE = "true".
+FALSE = "false".
+INT = "Int".
+FLOAT = "Float".
+CHAR = "Char".
+BOOL = "Bool".
+
+COMMENTS FROM "//" TO LF
+
+IGNORE CR + LF + HT + FF
+
+PRODUCTIONS
+
+Comp = Program.
+Program = {Definition} Main.
+
+Definition = LET ID (ConstDef | FuncDef).
+ConstDef = ':' Type '=' (Expression | (READ '(' ')')).
+FuncDef = '(' ParamList ')' ':' Type '=' '{' FuncBody '}'.
+
+ParamList = Type {',' Type}.
+Type = SimpleType
+      | ('(' Type {',' Type} ')' ':' Type)
+      | ('[' Type ']').
+SimpleType = INT | FLOAT | CHAR | BOOL | GENT.
+
+FuncBody = Case {Case}.
+Case = FOR PatternList '=' [ConstList] Expression.
+PatternList = Pattern {',' Pattern}.
+Pattern = INTCONS
+        | FLOATCONS
+        | CHARCONS
+        | ID [':' ID]
+        | ('[' ']').
+ConstList = ConstDefInter {',' ConstDefInter} IN.
+ConstDefInter = LET ID ':' Type '=' (Expression | (READ '(' ')')).
+
+Expression = LambdaExp | SimpleExp.
+SimpleExp = IfExp | Exp.
+Exp = AndExp {'|' AndExp}.
+AndExp = LogicalExp {'&' LogicalExp}.
+LogicalExp = MathExp {("==" | "!=" | "<" | "<=" | ">" | ">=") MathExp}.
+MathExp = Term {('+' | '-') Term}.
+Term = ListExp {('*' | '/') ListExp}.
+ListExp = Factor {(':' | "++") Factor}.
+Factor = [('+' | '-' | '!')] (  INTCONS
+                              | FLOATCONS
+                              | CHARCONS
+                              | (ID ['(' [Expression {',' Expression}] ')'])
+                              | List
+                              | ('(' SimpleExp ')')).
+
+IfExp = IFT Exp THEN SimpleExp ELSE SimpleExp.
+List = '[' [Expression {',' Expression}] ']'.
+LambdaExp = LAMBDA '(' [ID ':' Type {',' ID ':' Type}] ')' ':' Type '{' Expression '}'.
+
+Main = MAIN '=' DO {(ConstDefInter | Print)}.
+Print = PRINT '(' SimpleExp ')'.
+END Comp.
