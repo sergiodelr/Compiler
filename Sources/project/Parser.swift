@@ -71,12 +71,12 @@ public class Parser {
     public var la: Token            // lookahead token
     var errDist = Parser.minErrDist
 
-    // Mark: Custom properties
+    // MARK: Custom properties
     var globalTable: SymbolTable
     // Current symbol table
     var symbolTable: SymbolTable
 
-    // Mark: Edited method
+    // MARK: Edited method
     public init(scanner: Scanner, globalTable: SymbolTable) {
         self.scanner = scanner
         self.globalTable = globalTable
@@ -155,7 +155,7 @@ public class Parser {
         Program()
     }
 
-    // Mark: Edited method.
+    // MARK: Edited method.
     func Program() {
         symbolTable = globalTable
         while la.kind == _LET {
@@ -164,7 +164,7 @@ public class Parser {
         Main()
     }
 
-    // Mark: Edited method.
+    // MARK: Edited method.
     // Adds definition to Symbol Table or marks an error.
     func Definition() {
         Expect(_LET)
@@ -197,7 +197,7 @@ public class Parser {
         }
     }
 
-    // Mark: Edited method
+    // MARK: Edited method
     // Receives a symbolEntry and sets its data type, kind, and child table. If entry is of kind lambda, its parameters.
 	// will be added to this child table (in another method). Adds the symbolEntry to the symbol table.
     func ConstDef(_ symbolEntry: inout SymbolTable.Entry) {
@@ -243,7 +243,7 @@ public class Parser {
         Expect(29 /* "}" */)
     }
 
-    // Mark: Edited method.
+    // MARK: Edited method.
     // Returns the parsed data type.
     @discardableResult
     func Type() -> DataType {
@@ -317,7 +317,7 @@ public class Parser {
         }
     }
 
-    // Mark: Edited method
+    // MARK: Edited method
     // Returns a simple data type.
     func SimpleType() -> DataType {
         var genId: Character? = nil
