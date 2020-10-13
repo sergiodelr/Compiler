@@ -7,6 +7,7 @@ import Foundation
 public enum SemanticError: Error {
     case multipleDeclaration(symbol: String)
     case typeMismatch(expected: DataType, received: DataType)
+    case internalError
 
     func description() -> String {
         switch self {
@@ -14,6 +15,8 @@ public enum SemanticError: Error {
             return "Type mismatch. Expected: \(expected). Received: \(received)"
         case let .multipleDeclaration(symbol):
             return "Multiple declaration. Symbol: \(symbol)"
+        case .internalError:
+            return "Internal semantic error."
         }
     }
 

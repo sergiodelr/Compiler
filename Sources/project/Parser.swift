@@ -198,8 +198,8 @@ public class Parser {
     }
 
     // MARK: Edited method
-    // Receives a symbolEntry and sets its data type, kind, and child table. If entry is of kind lambda, its parameters.
-	// will be added to this child table (in another method). Adds the symbolEntry to the symbol table.
+    // Receives a symbolEntry and sets its data type, kind, and child table. If entry is of kind lambda, its parameters
+	// will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
     func ConstDef(_ symbolEntry: inout SymbolTable.Entry) {
         Expect(24 /* ":" */)
 
@@ -239,7 +239,7 @@ public class Parser {
 
         Expect(25 /* "=" */)
         Expect(28 /* "{" */)
-        FuncBody()
+        FuncBody(symbolEntry.dataType)
         Expect(29 /* "}" */)
     }
 
@@ -309,11 +309,18 @@ public class Parser {
         return res
     }
 
-    func FuncBody() {
-        // TODO: Create symbol table for each case.
-        Case()
+    // MARK: Edited method
+    // Creates a symbol table for each pattern and sets it as the current one.
+    func FuncBody(_ funcType: DataType) {
+        var caseTable = SymbolTable(parent: symbolTable)
+        symbolTable = caseTable
+        Case(funcType)
+        symbolTable = symbolTable.parent! // Parent was just set above
         while la.kind == _FOR {
-            Case()
+            caseTable = SymbolTable(parent: symbolTable)
+            symbolTable = caseTable
+            Case(funcType)
+            symbolTable = symbolTable.parent! // Parent was just set above
         }
     }
 
@@ -338,17 +345,28 @@ public class Parser {
         return dataTypeFromSimpleType(t.kind, genericId: genId)
     }
 
-    func Case() {
+    // MARK: Edited method.
+    // Receives the function data type. Used to add local constants to symbol table.
+    func Case(_ funcType: DataType) {
         Expect(_FOR)
-        PatternList()
-        Expect(25 /* "=" */)
-        if la.kind == _LET {
-            ConstList()
+        // If case statement is used to extract parameter and return types. It is guaranteed that pattern will always
+        // have a match.
+        if case let DataType.funcType(paramTypes, returnType) = funcType {
+            PatternList(paramTypes)
+            Expect(25 /* "=" */)
+            if la.kind == _LET {
+                ConstList()
+            }
+            Expression()
+        } else {
+            SemanticError.handle(.internalError, line: t.line, col: t.col)
         }
-        Expression()
     }
 
-    func PatternList() {
+    // MARK: Edited method.
+    // Receives the parameter types. Matches each pattern with its type.
+    func PatternList(_ paramTypes: [DataType]) {
+        // TODO: finish pattern matching.
         Pattern()
         while la.kind == 30 /* "," */ {
             Get()
@@ -393,15 +411,25 @@ public class Parser {
         }
     }
 
+    // Creates a symbol entry and sets its name, data type, kind, and child table. If entry is of kind lambda, its
+    // parameters will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
     func ConstDefInter() {
         Expect(_LET)
         Expect(_ID)
+
+        var symbolEntry = SymbolTable.Entry()
+        symbolEntry.name = getIdName()
+
         Expect(24 /* ":" */)
-        Type()
+
+        setTypeKind(&symbolEntry)
+        symbolTable[symbolEntry.name] = symbolEntry
+
         Expect(25 /* "=" */)
         if StartOf(1) {
             Expression()
         } else if la.kind == _READ {
+            // TODO: Only allow read in main function.
             Get()
             Expect(26 /* "(" */)
             Expect(27 /* ")" */)
