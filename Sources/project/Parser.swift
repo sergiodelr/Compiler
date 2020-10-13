@@ -366,10 +366,17 @@ public class Parser {
     }
 
     func Pattern() {
-        if la.kind == _INTCONS {
-            Get()
-        } else if la.kind == _FLOATCONS {
-            Get()
+        if la.kind == 42 /* "-" */  || la.kind == _INTCONS || la.kind == _FLOATCONS {
+            if la.kind == 42 /* "-" */ {
+                Get()
+            }
+            if la.kind == _INTCONS {
+                Get()
+            } else if la.kind == _FLOATCONS {
+                Get()
+            } else {
+                SynErr(53)
+            }
         } else if la.kind == _CHARCONS {
             Get()
         } else if la.kind == _ID {
