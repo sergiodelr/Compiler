@@ -184,9 +184,15 @@ public class Parser {
         }
     }
 
+    // MARK: Edited method.
+    // Creates a symbol table for its local constants.
     func Main() {
         Expect(_MAIN)
         Expect(25 /* "=" */)
+
+        let mainTable = SymbolTable(parent: symbolTable)
+        symbolTable = mainTable
+
         Expect(_DO)
         while la.kind == _LET || la.kind == _PRINT {
             if la.kind == _LET {
@@ -195,11 +201,12 @@ public class Parser {
                 Print()
             }
         }
+        symbolTable = symbolTable.parent
     }
 
     // MARK: Edited method
     // Receives a symbolEntry and sets its data type, kind, and child table. If entry is of kind lambda, its parameters
-	// will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
+    // will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
     func ConstDef(_ symbolEntry: inout SymbolTable.Entry) {
         Expect(24 /* ":" */)
 
@@ -216,7 +223,7 @@ public class Parser {
 //                throw SemanticError.typeMismatch
 //			}
         } else if la.kind == _READ {
-			//TODO: Don't allow read statement in global scope.
+            //TODO: Don't allow read statement in global scope.
             Get()
             Expect(26 /* "(" */)
             Expect(27 /* ")" */)
@@ -276,9 +283,9 @@ public class Parser {
         return res
     }
 
-	// MARK: Edited method.
-	// Returns the expression's data type.
-	@discardableResult
+    // MARK: Edited method.
+    // Returns the expression's data type.
+    @discardableResult
     func Expression() -> DataType {
         var res = DataType.noneType
         if la.kind == _LAMBDA {
@@ -367,10 +374,12 @@ public class Parser {
     // Receives the parameter types. Matches each pattern with its type.
     func PatternList(_ paramTypes: [DataType]) {
         // TODO: finish pattern matching.
-        Pattern()
+        Pattern(paramTypes[0])
+        var patCount = 1
         while la.kind == 30 /* "," */ {
             Get()
-            Pattern()
+            Pattern(paramTypes[patCount])
+            patCount += 1
         }
     }
 
@@ -383,8 +392,10 @@ public class Parser {
         Expect(_IN)
     }
 
-    func Pattern() {
-        if la.kind == 42 /* "-" */  || la.kind == _INTCONS || la.kind == _FLOATCONS {
+    // MARK: Edited method.
+    // Receives a data type and matches the pattern. If pattern is an id, it adds it to the symbol table.
+    func Pattern(_ patternType: DataType) {
+        if la.kind == 42 /* "-" */ || la.kind == _INTCONS || la.kind == _FLOATCONS {
             if la.kind == 42 /* "-" */ {
                 Get()
             }
@@ -399,10 +410,49 @@ public class Parser {
             Get()
         } else if la.kind == _ID {
             Get()
+            let firstId = t.val
+            var secondId: String? = nil
+
             if la.kind == 24 /* ":" */ {
                 Get()
                 Expect(_ID)
+                secondId = t.val
             }
+
+            switch patternType {
+            case let .listType(innerType):
+                if let secondId = secondId {
+                    // If it is a list type and pattern is "id1:id2", add both ids to symbol table if they are not "_".
+                    if firstId != "_" {
+                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: innerType, kind: .constKind)
+                    }
+                    if secondId != "_" {
+                        symbolTable[secondId] = SymbolTable.Entry(
+                                name: secondId,
+                                dataType: patternType,
+                                kind: .constKind)
+                    }
+                } else {
+                    // If there is only one id, then add it to the symbol table with patternType if it is not "_".
+                    if firstId != "_" {
+                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: patternType, kind: .constKind)
+                    }
+                }
+            default:
+                if let secondId = secondId {
+                    // If patternType != list type and there are two ids, throw an error.
+                    SemanticError.handle(
+                            .typeMismatch(expected: patternType, received: .listType(innerType: patternType)),
+                            line: t.line,
+                            col: t.col)
+                } else {
+                    // Else add entry normally to table.
+                    if firstId != "_" {
+                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: patternType, kind: .constKind)
+                    }
+                }
+            }
+
         } else if la.kind == 31 /* "[" */ {
             Get()
             Expect(32 /* "]" */)
