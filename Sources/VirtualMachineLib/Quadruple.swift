@@ -18,8 +18,8 @@ public enum VMOperator {
     case goTo
 }
 
-// Represents a quadruple, which contains a VM operator and the address of its first argument, its second one, and its
-// result.
+// Represents a quadruple, which contains a VM operator and the virtual address of its first argument, its second one,
+// and its result.
 public struct Quadruple {
     public var instruction: VMOperator
     public var first: Int?
