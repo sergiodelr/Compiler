@@ -77,12 +77,20 @@ public class Parser {
     var symbolTable: SymbolTable
     // Instruction queue
     var instructionQueue: InstructionQueue
+    // Stack for operators in expressions
+    var operatorStack: Stack<LangOperator>
+    // Stack for operands in expressions. Contains the operands' virtual address.
+    var operandStack: Stack<Int>
 
     // MARK: Edited method
-    public init(scanner: Scanner, globalTable: SymbolTable) {
+    public init(scanner: Scanner) {
         self.scanner = scanner
-        self.globalTable = globalTable
-        self.instructionQueue = InstructionQueue()
+
+        globalTable = SymbolTable()
+        instructionQueue = InstructionQueue()
+        operatorStack = Stack<LangOperator>()
+        operandStack = Stack<Int>()
+
         symbolTable = globalTable
         errors = Errors()
         t = Token()
@@ -427,18 +435,27 @@ public class Parser {
                 if let secondId = secondId {
                     // If it is a list type and pattern is "id1:id2", add both ids to symbol table if they are not "_".
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: innerType, kind: .constKind)
+                        symbolTable[firstId] = SymbolTable.Entry(
+                                name: firstId,
+                                dataType: innerType,
+                                kind: .constKind,
+                                address: nil)
                     }
                     if secondId != "_" {
                         symbolTable[secondId] = SymbolTable.Entry(
                                 name: secondId,
                                 dataType: patternType,
-                                kind: .constKind)
+                                kind: .constKind,
+                                address: nil)
                     }
                 } else {
                     // If there is only one id, then add it to the symbol table with patternType if it is not "_".
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: patternType, kind: .constKind)
+                        symbolTable[firstId] = SymbolTable.Entry(
+                                name: firstId,
+                                dataType: patternType,
+                                kind: .constKind,
+                                address: nil)
                     }
                 }
             default:
@@ -451,7 +468,11 @@ public class Parser {
                 } else {
                     // Else add entry normally to table.
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(name: firstId, dataType: patternType, kind: .constKind)
+                        symbolTable[firstId] = SymbolTable.Entry(
+                                name: firstId,
+                                dataType: patternType,
+                                kind: .constKind,
+                                address: nil)
                     }
                 }
             }

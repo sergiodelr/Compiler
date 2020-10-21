@@ -10,6 +10,17 @@ public enum VMOperator {
     case subtract
     case divide
     case multiply
+    case and
+    case or
+    case not
+    case positive
+    case negative
+    case equal
+    case notEqual
+    case lessThan
+    case greaterThan
+    case lessEqual
+    case greaterEqual
     case assign
     case cons
     case append

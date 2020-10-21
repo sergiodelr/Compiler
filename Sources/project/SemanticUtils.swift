@@ -33,6 +33,28 @@ public enum LangOperator: String {
     case gThanOp = ">"
     case lEqOp = "<="
     case gEqOp = ">="
+
+    case placeholderOp // Used to create a false bottom in the operator stack when parentheses are found in an exp.
+
+    // Returns the operator's precedence level. A lower precedence number indicates higher precedence, starting at 0.
+    func precedence() -> Int {
+        switch self {
+        case .notOp, .negOp, .posOp, .placeholderOp:
+            return 0
+        case .appendOp, .consOp:
+            return 1
+        case .multOp, .divOp:
+            return 2
+        case .plusOp, .minusOp:
+            return 3
+        case .eqOp, .notEqOp, .lThanOp, .gThanOp, .lEqOp, .gEqOp:
+            return 4
+        case .andOp:
+            return 5
+        case .orOp:
+            return 6
+        }
+    }
 }
 
 // Contains a static method to validate operand types with an operator.

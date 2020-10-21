@@ -6,7 +6,7 @@ import Foundation
 
 // Symbol table containing relevant information about variables and functions. Each entry optionally contains a
 // reference to its own symbol table and to its parent table.
-public class SymbolTable:CustomDebugStringConvertible {
+public class SymbolTable: CustomDebugStringConvertible {
     public enum SymbolKind {
         case constKind
         case funcKind
@@ -18,6 +18,7 @@ public class SymbolTable:CustomDebugStringConvertible {
         public var name: String = ""
         public var dataType: DataType = .noneType
         public var kind: SymbolKind = .noKind
+        public var address: Int? = nil
         public var debugDescription: String { return "n: \(name), t: \(dataType), k: \(kind)" }
     }
 
