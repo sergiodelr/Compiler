@@ -30,7 +30,6 @@
 -------------------------------------------------------------------------*/
 
 import Foundation
-import VirtualMachineLib
 
 public class Parser {
     public let _EOF = 0

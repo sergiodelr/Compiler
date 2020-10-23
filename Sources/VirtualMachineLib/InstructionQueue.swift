@@ -22,7 +22,7 @@ public class InstructionQueue {
     }
 
     // Convenience subscript syntax.
-    public subscript(index: Int) -> Quadruple{
+    public subscript(index: Int) -> Quadruple {
         get {
             return queue[index]
         }
@@ -36,8 +36,9 @@ public class InstructionQueue {
         queue.append(quadruple)
     }
 
-    // Sets the goTo index of the quadruple at the given index in the queue to the given goTo index.
-    public func fillGoTo(at index: Int, goTo: Int) {
-        queue[index].res = goTo
+    // Sets the result of the quadruple at the given index to the given result value.
+    public func fillResult(at index: Int, result: Int) {
+        // TODO: Make sure result mutates.
+        queue[index].res = result
     }
 }

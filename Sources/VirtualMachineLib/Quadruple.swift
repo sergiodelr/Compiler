@@ -5,7 +5,7 @@
 import Foundation
 
 // An operator that the language's virtual machine will interpret. Can be arithmetic operators, goTos, etc.
-public enum VMOperator {
+public enum VMOperator: String {
     case add
     case subtract
     case divide
@@ -31,9 +31,13 @@ public enum VMOperator {
 
 // Represents a quadruple, which contains a VM operator and the virtual address of its first argument, its second one,
 // and its result.
-public struct Quadruple {
+public struct Quadruple: CustomStringConvertible {
     public var instruction: VMOperator
     public var first: Int?
     public var second: Int?
     public var res: Int?
+
+    public var description: String {
+        return "<\(instruction), \(String(describing:first)), \(String(describing:second)), \(String(describing:res))>"
+    }
 }

@@ -5,28 +5,28 @@
 import Foundation
 
 // Initial virtual memory pointers for primitive types.
-enum MemoryPointer {
+public enum MemoryPointer {
     // Global
-    static let globalInt = 0
-    static let globalFloat = 250
-    static let globalChar = 500
-    static let globalBool = 750
+    public static let globalInt = 0
+    public static let globalFloat = 250
+    public static let globalChar = 500
+    public static let globalBool = 750
 
     // Local
-    static let localInt = 1000
-    static let localFloat = 1250
-    static let localChar = 1500
-    static let localBool = 1750
+    public static let localInt = 1000
+    public static let localFloat = 1250
+    public static let localChar = 1500
+    public static let localBool = 1750
 
     // Temporary
-    static let tempInt = 2000
-    static let tempFloat = 2250
-    static let tempChar = 2500
-    static let tempBool = 2750
+    public static let tempInt = 2000
+    public static let tempFloat = 2250
+    public static let tempChar = 2500
+    public static let tempBool = 2750
 
     // Literal
-    static let litInt = 3000
-    static let litFloat = 3250
-    static let litChar = 3500
-    static let litBool = 3750
+    public static let litInt = 3000
+    public static let litFloat = 3250
+    public static let litChar = 3500
+    public static let litBool = 3750
 }

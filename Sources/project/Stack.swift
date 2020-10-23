@@ -35,6 +35,7 @@ public class Stack<Element>: Stackable {
         items.append(item)
     }
 
+    @discardableResult
     func pop() -> Element? {
         return items.popLast()
     }
