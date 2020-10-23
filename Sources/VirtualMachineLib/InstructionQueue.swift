@@ -35,4 +35,9 @@ public class InstructionQueue {
     public func push(_ quadruple: Quadruple) {
         queue.append(quadruple)
     }
+
+    // Sets the goTo index of the quadruple at the given index in the queue to the given goTo index.
+    public func fillGoTo(at index: Int, goTo: Int) {
+        queue[index].res = goTo
+    }
 }

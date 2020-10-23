@@ -72,26 +72,14 @@ public class Parser {
     var errDist = Parser.minErrDist
 
     // MARK: Custom properties
-    var globalTable: SymbolTable
-    // Current symbol table
-    var symbolTable: SymbolTable
-    // Instruction queue
-    var instructionQueue: InstructionQueue
-    // Stack for operators in expressions
-    var operatorStack: Stack<LangOperator>
-    // Stack for operands in expressions. Contains the operands' virtual address.
-    var operandStack: Stack<Int>
+    // Code generator
+    var codeGenerator: CodeGenerator
 
     // MARK: Edited method
-    public init(scanner: Scanner) {
+    public init(scanner: Scanner, codeGenerator: CodeGenerator) {
         self.scanner = scanner
+        self.codeGenerator = codeGenerator
 
-        globalTable = SymbolTable()
-        instructionQueue = InstructionQueue()
-        operatorStack = Stack<LangOperator>()
-        operandStack = Stack<Int>()
-
-        symbolTable = globalTable
         errors = Errors()
         t = Token()
         la = t
@@ -168,7 +156,6 @@ public class Parser {
 
     // MARK: Edited method.
     func Program() {
-        symbolTable = globalTable
         while la.kind == _LET {
             Definition()
         }
@@ -181,15 +168,11 @@ public class Parser {
         Expect(_LET)
         Expect(_ID)
 
-        var symbolEntry = SymbolTable.Entry()
-        symbolEntry.name = getIdName()
-
+        let name = t.val
         if la.kind == 24 /* ":" */ {
-            ConstDef(&symbolEntry)
+            ConstDef(name)
         } else if la.kind == 26 /* "(" */ {
-            symbolEntry.kind = .funcKind
-
-            FuncDef(&symbolEntry)
+            FuncDef(name)
         } else {
             SynErr(48)
         }
@@ -201,8 +184,7 @@ public class Parser {
         Expect(_MAIN)
         Expect(25 /* "=" */)
 
-        let mainTable = SymbolTable(parent: symbolTable)
-        symbolTable = mainTable
+        codeGenerator.newSymbolTable()
 
         Expect(_DO)
         while la.kind == _LET || la.kind == _PRINT {
@@ -212,17 +194,16 @@ public class Parser {
                 Print()
             }
         }
-        symbolTable = symbolTable.parent!
+        codeGenerator.deleteSymbolTable()
     }
 
     // MARK: Edited method
-    // Receives a symbolEntry and sets its data type, kind, and child table. If entry is of kind lambda, its parameters
+    // Receives a symbol name and sets its data type, kind, and child table. If entry is of kind lambda, its parameters
     // will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
-    func ConstDef(_ symbolEntry: inout SymbolTable.Entry) {
+    func ConstDef(_ name: String) {
         Expect(24 /* ":" */)
-
-        setTypeKind(&symbolEntry)
-        symbolTable[symbolEntry.name] = symbolEntry
+        let type = Type()
+        codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
 
         Expect(25 /* "=" */)
         if StartOf(1) {
@@ -246,18 +227,18 @@ public class Parser {
     // MARK: Edited method.
     // Sets the symbolEntry's type and kind. It calls FuncBody(), which will create a symbol table for each pattern
     // matching case.
-    func FuncDef(_ symbolEntry: inout SymbolTable.Entry) {
+    func FuncDef(_ name: String) {
         Expect(26 /* "(" */)
         let paramTypes = ParamList()
         Expect(27 /* ")" */)
         Expect(24 /* ":" */)
         let returnType = Type()
-        symbolEntry.dataType = .funcType(paramTypes: paramTypes, returnType: returnType)
-        symbolTable[symbolEntry.name] = symbolEntry
+        let functionType = DataType.funcType(paramTypes: paramTypes, returnType: returnType)
+        codeGenerator.newSymbol(name: name, type: functionType, line: t.line, col: t.col)
 
         Expect(25 /* "=" */)
         Expect(28 /* "{" */)
-        FuncBody(symbolEntry.dataType)
+        FuncBody(functionType)
         Expect(29 /* "}" */)
     }
 
@@ -301,11 +282,10 @@ public class Parser {
         var res = DataType.noneType
         if la.kind == _LAMBDA {
             // Set current symbol table to lambda symbol table.
-            let lambdaTable = SymbolTable(parent: symbolTable)
-            symbolTable = lambdaTable
+            codeGenerator.newSymbolTable()
             res = LambdaExp()
             // Reset current symbol table.
-            symbolTable = symbolTable.parent! // Table's parent is set above.
+            codeGenerator.deleteSymbolTable()
         } else if StartOf(3) {
             res = SimpleExp()
         } else {
@@ -330,15 +310,17 @@ public class Parser {
     // MARK: Edited method
     // Creates a symbol table for each pattern and sets it as the current one.
     func FuncBody(_ funcType: DataType) {
-        var caseTable = SymbolTable(parent: symbolTable)
-        symbolTable = caseTable
+        // Create symbol table for case.
+        codeGenerator.newSymbolTable()
         Case(funcType)
-        symbolTable = symbolTable.parent! // Parent was just set above
+        // Reset symbol table.
+        codeGenerator.deleteSymbolTable()
         while la.kind == _FOR {
-            caseTable = SymbolTable(parent: symbolTable)
-            symbolTable = caseTable
+            // Create symbol table for case.
+            codeGenerator.newSymbolTable()
             Case(funcType)
-            symbolTable = symbolTable.parent! // Parent was just set above
+            // Reset symbol table.
+            codeGenerator.deleteSymbolTable()
         }
     }
 
@@ -435,44 +417,25 @@ public class Parser {
                 if let secondId = secondId {
                     // If it is a list type and pattern is "id1:id2", add both ids to symbol table if they are not "_".
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(
-                                name: firstId,
-                                dataType: innerType,
-                                kind: .constKind,
-                                address: nil)
+                        codeGenerator.newSymbol(name: firstId, type: innerType, line: t.line, col: t.col)
                     }
                     if secondId != "_" {
-                        symbolTable[secondId] = SymbolTable.Entry(
-                                name: secondId,
-                                dataType: patternType,
-                                kind: .constKind,
-                                address: nil)
+                        codeGenerator.newSymbol(name: secondId, type: patternType, line: t.line, col: t.col)
                     }
                 } else {
                     // If there is only one id, then add it to the symbol table with patternType if it is not "_".
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(
-                                name: firstId,
-                                dataType: patternType,
-                                kind: .constKind,
-                                address: nil)
+                        codeGenerator.newSymbol(name: firstId, type: patternType, line: t.line, col: t.col)
                     }
                 }
             default:
                 if let secondId = secondId {
                     // If patternType != list type and there are two ids, throw an error.
-                    SemanticError.handle(
-                            .typeMismatch(expected: patternType, received: .listType(innerType: patternType)),
-                            line: t.line,
-                            col: t.col)
+                    // TODO: throw error.
                 } else {
                     // Else add entry normally to table.
                     if firstId != "_" {
-                        symbolTable[firstId] = SymbolTable.Entry(
-                                name: firstId,
-                                dataType: patternType,
-                                kind: .constKind,
-                                address: nil)
+                        codeGenerator.newSymbol(name: firstId, type: patternType, line: t.line, col: t.col)
                     }
                 }
             }
@@ -491,13 +454,11 @@ public class Parser {
         Expect(_LET)
         Expect(_ID)
 
-        var symbolEntry = SymbolTable.Entry()
-        symbolEntry.name = getIdName()
-
+        let name = t.val
         Expect(24 /* ":" */)
 
-        setTypeKind(&symbolEntry)
-        symbolTable[symbolEntry.name] = symbolEntry
+        let type = Type()
+        codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
 
         Expect(25 /* "=" */)
         if StartOf(1) {
@@ -521,25 +482,22 @@ public class Parser {
         Expect(26 /* "(" */)
         if la.kind == _ID {
             Get()
-            var symbolEntry = SymbolTable.Entry()
-            symbolEntry.name = getIdName()
+            var name = t.val
 
             Expect(24 /* ":" */)
-            // Parses type
-            setTypeKind(&symbolEntry)
-            symbolTable[symbolEntry.name] = symbolEntry
-            paramTypes.append(symbolEntry.dataType)
+
+            var type = Type()
+            codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+            paramTypes.append(type)
             while la.kind == 30 /* "," */ {
-                symbolEntry = SymbolTable.Entry()
                 Get()
                 Expect(_ID)
-                symbolEntry.name = getIdName()
-
+                name = t.val
                 Expect(24 /* ":" */)
-                // Parses type
-                setTypeKind(&symbolEntry)
-                symbolTable[symbolEntry.name] = symbolEntry
-                paramTypes.append(symbolEntry.dataType)
+
+                type = Type()
+                codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+                paramTypes.append(type)
             }
         }
         Expect(27 /* ")" */)
@@ -862,33 +820,6 @@ extension Parser {
             return .genType(identifier: genericId!) // If type is generic, then it must always have an ID.
         default:
             return .noneType
-        }
-    }
-
-    // Checks whether the current token exists in the symbol table and returns it if it does. If not, it throws an
-    // error.
-    // This method must be called after a Get() or Expect().
-    func getIdName() -> String {
-        let name = t.val
-        guard !symbolTable.find(name) else {
-            SemanticError.handle(.multipleDeclaration(symbol: name), line: t.line, col: t.col)
-            return "" // Dummy return. Execution will stop in handle method.
-        }
-        return name
-    }
-
-    // Sets the type and kind of the given symbol entry or throws an error. Contains Type(), which parses type token
-    // from the input.
-    func setTypeKind(_ symbolEntry: inout SymbolTable.Entry) {
-        symbolEntry.dataType = Type()
-        switch symbolEntry.dataType {
-        case .funcType:
-            symbolEntry.kind = .funcKind
-        case .errType, .noneType:
-            symbolEntry.kind = .noKind
-                // TODO: Type error.
-        default:
-            symbolEntry.kind = .constKind
         }
     }
 }
