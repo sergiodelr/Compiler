@@ -22,7 +22,7 @@ public class Stack<Element>: Stackable {
         return items.isEmpty
     }
 
-    init() {
+    public init() {
         items = [Element]()
     }
 

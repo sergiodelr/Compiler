@@ -14,7 +14,11 @@ public class CodeGenerator {
     // Current symbol table.
     private var symbolTable: SymbolTable
     // Temp creator stack to allow for local temporaries.
-    private var tempCreators: Stack<TempCreator>
+    private var tempAllocators: Stack<TempAddressAllocator>
+    // Global const allocator.
+    private var globalAllocator: VirtualAddressAllocator
+    // Local const allocators.
+    private var localAllocators: Stack<VirtualAddressAllocator>
 
     // Public
     // Stack for operators in expressions
@@ -31,8 +35,10 @@ public class CodeGenerator {
         jumpStack = Stack<Int>()
         globalTable = SymbolTable()
         symbolTable = globalTable
-        tempCreators = Stack<TempCreator>()
-        tempCreators.push(TempCreator())
+        tempAllocators = Stack<TempAddressAllocator>()
+        tempAllocators.push(TempAddressAllocator())
+        globalAllocator = Stack<VirtualAddressAllocator>()
+
     }
 
     // Receives a symbol name and type. Sets its kind and if it is of kind funcKind, creates a symbol table for its
@@ -54,13 +60,13 @@ public class CodeGenerator {
         default:
             kind = .constKind
         }
-        symbolTable[name] = SymbolTable.Entry(name: name, dataType: type, kind: kind, address: nil)
+        symbolTable[name] = SymbolTable.Entry(name: name, dataType: type, kind: kind, address: )
     }
 
     // Creates a new symbol table and sets its parent to the previous one.
     public func newSymbolTable() {
         symbolTable = SymbolTable(parent: symbolTable)
-        tempCreators.push(TempCreator())
+        tempCreators.push(TempAddressAllocator())
     }
 
     // Returns to the parent symbol table if there is one, deleting the current one.
@@ -69,46 +75,5 @@ public class CodeGenerator {
             symbolTable = parentTable
             tempCreators.pop()
         }
-    }
-}
-
-// Handles virtual memory for temporary variables. Can allocate more memory addresses or recycle them as needed.
-class TempCreator {
-    // Private
-    // The next memory counter for each data type.
-    private var nextCounter = [DataType: Int]()
-    // The available recycled addresses for each data type.
-    private var availableAddresses = [DataType: Set<Int>]()
-
-    // Public
-    public init() {
-        nextCounter[.intType] = MemoryPointer.tempInt
-        nextCounter[.floatType] = MemoryPointer.tempFloat
-        nextCounter[.charType] = MemoryPointer.tempChar
-        nextCounter[.boolType] = MemoryPointer.tempBool
-
-        availableAddresses[.intType] = Set<Int>()
-        availableAddresses[.floatType] = Set<Int>()
-        availableAddresses[.charType] = Set<Int>()
-        availableAddresses[.boolType] = Set<Int>()
-    }
-
-    public func getNext(_ type: DataType) -> Int {
-        guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
-            // TODO: Throw error
-            return 0 // Dummy return.
-        }
-        let res: Int
-        // After guard, availableAddresses is guaranteed to contain key.
-        if availableAddresses[type]!.isEmpty {
-            // return current counter and increase it.
-            res = nextCounter[type]!
-            nextCounter[type] = res + 1
-        } else {
-            // return an address from availableAddresses.
-            // TODO: make sure set mutates when removing addresses.
-            res = availableAddresses[type]!.removeFirst()
-        }
-        return res
     }
 }

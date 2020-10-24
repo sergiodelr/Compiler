@@ -29,4 +29,6 @@ public enum MemoryPointer {
     public static let litFloat = 3250
     public static let litChar = 3500
     public static let litBool = 3750
+
+    public static let addressesPerType = 250
 }
