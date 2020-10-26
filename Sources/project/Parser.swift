@@ -203,16 +203,13 @@ public class Parser {
         Expect(24 /* ":" */)
         let type = Type()
         codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+        codeGenerator.pushName(name, line: t.line, col: t.col)
 
         Expect(25 /* "=" */)
+        codeGenerator.pushOperator(.assgOp)
         if StartOf(1) {
             Expression()
-            // TODO: check expression type. Delete Expression() call above.
-//			let expressionType = Expression()
-//			guard expressionType == symbolEntry.dataType else {
-//				// TODO: Type mismatch.
-//                throw SemanticError.typeMismatch
-//			}
+            codeGenerator.generateExpQuadruple(op: .assgOp, line: t.line, col: t.col)
         } else if la.kind == _READ {
             //TODO: Don't allow read statement in global scope.
             Get()
@@ -620,6 +617,7 @@ public class Parser {
     }
 
     func ListExp() {
+        // TODO: Make cons right associative.
         Factor()
         codeGenerator.generateExpQuadruple(op: .consOp, line: t.line, col: t.col)
         while la.kind == 24 /* ":" */ || la.kind == 45 /* "++" */ {
@@ -648,10 +646,13 @@ public class Parser {
         switch la.kind {
         case _INTCONS:
             Get()
+            codeGenerator.pushLiteral(t.val, type: .intType)
         case _FLOATCONS:
             Get()
+            codeGenerator.pushLiteral(t.val, type: .floatType)
         case _CHARCONS:
             Get()
+            codeGenerator.pushLiteral(t.val, type: .charType)
         case _ID:
             Get()
             let name = t.val

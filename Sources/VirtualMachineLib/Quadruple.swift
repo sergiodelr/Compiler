@@ -39,7 +39,7 @@ public struct Quadruple: CustomStringConvertible {
     public var res: Int?
 
     public var description: String {
-        return "<\(instruction), \(String(describing:first)), \(String(describing:second)), \(String(describing:res))>"
+        return "<\(instruction), \(String(first)), \(String(second)), \(String(res))>"
     }
 
     public init(instruction: VMOperator, first: Int?, second: Int?, res: Int?) {
@@ -47,5 +47,16 @@ public struct Quadruple: CustomStringConvertible {
         self.first = first
         self.second = second
         self.res = res
+    }
+}
+
+// Convenience initializer for optional Ints in quadruples.
+extension String {
+    init(_ optionalInt: Int?) {
+        if let value = optionalInt {
+            self = String(value)
+        } else {
+            self = "_"
+        }
     }
 }

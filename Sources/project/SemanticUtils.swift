@@ -33,6 +33,7 @@ public enum LangOperator: String {
     case gThanOp = ">"
     case lEqOp = "<="
     case gEqOp = ">="
+    case assgOp = "="
 
     case placeholderOp // Used to create a false bottom in the operator stack when parentheses are found in an exp.
 
@@ -53,6 +54,8 @@ public enum LangOperator: String {
             return 5
         case .orOp:
             return 6
+        case .assgOp:
+            return 7
         }
     }
 }
@@ -212,6 +215,10 @@ public enum ExpressionTypeTable {
     // Given an operator and the types of two operands, it returns the resulting data type.
     public static func getDataType(op: LangOperator, type1: DataType, type2: DataType) -> DataType {
         switch op {
+        case .assgOp:
+            if type1 == type2 {
+                return type1
+            }
         case .consOp:
             if case let DataType.listType(innerType) = type2, type1 == innerType {
                 return .listType(innerType: type1)

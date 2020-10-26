@@ -17,8 +17,13 @@ public class CodeGenerator {
     private var tempAllocators: Stack<TempAddressAllocator>
     // Global const allocator.
     private var globalAllocator: VirtualAddressAllocator
+    // Literal allocator.
+    private var literalAllocator: VirtualAddressAllocator
     // Local const allocators.
     private var localAllocators: Stack<VirtualAddressAllocator>
+    // Maps from a string with a literal value to its virtual address.
+    private var literalDict: [String: Int]
+
 
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
     func find(name: String) -> SymbolTable.Entry? {
@@ -51,6 +56,7 @@ public class CodeGenerator {
         jumpStack = Stack<Int>()
         globalTable = SymbolTable()
         symbolTable = globalTable
+        literalDict = [String: Int]()
 
         tempAllocators = Stack<TempAddressAllocator>()
         tempAllocators.push(TempAddressAllocator(
@@ -58,6 +64,9 @@ public class CodeGenerator {
                 addressesPerType: MemoryPointer.addressesPerType))
         globalAllocator = VirtualAddressAllocator(
                 startAddress: MemoryPointer.globalStartAddress,
+                addressesPerType: MemoryPointer.addressesPerType)
+        literalAllocator = VirtualAddressAllocator(
+                startAddress: MemoryPointer.literalStartAddress,
                 addressesPerType: MemoryPointer.addressesPerType)
         localAllocators = Stack<VirtualAddressAllocator>()
     }
@@ -119,6 +128,17 @@ public class CodeGenerator {
         }
         operandStack.push(foundEntry.address!)
         typeStack.push(foundEntry.dataType)
+    }
+
+    public func pushLiteral(_ literal: String, type: DataType) {
+        if let literalAddress = literalDict[literal] {
+            operandStack.push(literalAddress)
+        } else {
+            let nextAddress = literalAllocator.getNext(type)
+            literalDict[literal] = nextAddress
+            operandStack.push(nextAddress)
+        }
+        typeStack.push(type)
     }
 
     // Pushes an operator to the operator stack.
@@ -209,6 +229,8 @@ extension CodeGenerator {
             return .negative
         case .notOp:
             return .not
+        case .assgOp:
+            return .assign
         default:
             SemanticError.handle(.internalError)
             return .placeholder // Dummy return.
