@@ -539,31 +539,31 @@ public class Parser {
 
     func Exp() {
         AndExp()
-        codeGenerator.generateExpQuadruple(op: .orOp)
+        codeGenerator.generateExpQuadruple(op: .orOp, line: t.line, col: t.col)
         while la.kind == 33 /* "|" */ {
             Get()
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             AndExp()
-            codeGenerator.generateExpQuadruple(op: .orOp)
+            codeGenerator.generateExpQuadruple(op: .orOp, line: t.line, col: t.col)
         }
     }
 
     // MARK: Edited method.
     func AndExp() {
         LogicalExp()
-        codeGenerator.generateExpQuadruple(op: .andOp)
+        codeGenerator.generateExpQuadruple(op: .andOp, line: t.line, col: t.col)
         while la.kind == 34 /* "&" */ {
             Get()
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             LogicalExp()
-            codeGenerator.generateExpQuadruple(op: .andOp)
+            codeGenerator.generateExpQuadruple(op: .andOp, line: t.line, col: t.col)
         }
     }
 
     // MARK: Edited method.
     func LogicalExp() {
         MathExp()
-        codeGenerator.generateExpQuadruple(op: .eqOp)
+        codeGenerator.generateExpQuadruple(op: .eqOp, line: t.line, col: t.col)
         while StartOf(5) {
             switch la.kind {
             case 35 /* "==" */:
@@ -583,14 +583,14 @@ public class Parser {
             }
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             MathExp()
-            codeGenerator.generateExpQuadruple(op: .eqOp)
+            codeGenerator.generateExpQuadruple(op: .eqOp, line: t.line, col: t.col)
         }
     }
 
     // MARK: Edited method.
     func MathExp() {
         Term()
-        codeGenerator.generateExpQuadruple(op: .plusOp)
+        codeGenerator.generateExpQuadruple(op: .plusOp, line: t.line, col: t.col)
         while la.kind == 41 /* "+" */ || la.kind == 42 /* "-" */ {
             if la.kind == 41 /* "+" */ {
                 Get()
@@ -599,14 +599,14 @@ public class Parser {
             }
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             Term()
-            codeGenerator.generateExpQuadruple(op: .plusOp)
+            codeGenerator.generateExpQuadruple(op: .plusOp, line: t.line, col: t.col)
         }
     }
 
     // MARK: Edited method.
     func Term() {
         ListExp()
-        codeGenerator.generateExpQuadruple(op: .multOp)
+        codeGenerator.generateExpQuadruple(op: .multOp, line: t.line, col: t.col)
         while la.kind == 43 /* "*" */ || la.kind == 44 /* "/" */ {
             if la.kind == 43 /* "*" */ {
                 Get()
@@ -615,13 +615,13 @@ public class Parser {
             }
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             ListExp()
-            codeGenerator.generateExpQuadruple(op: .multOp)
+            codeGenerator.generateExpQuadruple(op: .multOp, line: t.line, col: t.col)
         }
     }
 
     func ListExp() {
         Factor()
-        codeGenerator.generateExpQuadruple(op: .consOp)
+        codeGenerator.generateExpQuadruple(op: .consOp, line: t.line, col: t.col)
         while la.kind == 24 /* ":" */ || la.kind == 45 /* "++" */ {
             if la.kind == 24 /* ":" */ {
                 Get()
@@ -630,7 +630,7 @@ public class Parser {
             }
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             Factor()
-            codeGenerator.generateExpQuadruple(op: .consOp)
+            codeGenerator.generateExpQuadruple(op: .consOp, line: t.line, col: t.col)
         }
     }
 

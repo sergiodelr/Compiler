@@ -133,11 +133,10 @@ public class CodeGenerator {
 
     // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
     // operator's precedence. If not, it does nothing. If the operands' types do not match, an error is thrown.
-    public func generateExpQuadruple(op: LangOperator) {
+    public func generateExpQuadruple(op: LangOperator, line: Int, col: Int) {
         guard let top = operatorStack.top, op.precedence() == top.precedence() else {
             return
         }
-        print("generate" + String(describing: op))
         // It is guaranteed that stacks contain elements.
         let rightOperand = operandStack.pop()!
         let rightType = typeStack.pop()!
@@ -147,7 +146,7 @@ public class CodeGenerator {
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
         guard resultType != .errType else {
-            // TODO: Throw type mismatch.
+            SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
             return
         }
         let result = tempAllocators.top!.getNext(resultType)
