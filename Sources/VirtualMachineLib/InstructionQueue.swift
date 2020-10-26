@@ -17,6 +17,10 @@ public class InstructionQueue {
         return queue.count
     }
 
+    public var count: Int {
+        return nextInstruction
+    }
+
     public init() {
         queue = [Quadruple]()
     }

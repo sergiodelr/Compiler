@@ -40,7 +40,7 @@ public class SymbolTable: CustomDebugStringConvertible {
         }
         set {
             table[name] = newValue
-            print(String(reflecting: self))
+            // print(String(reflecting: self))
         }
     }
 

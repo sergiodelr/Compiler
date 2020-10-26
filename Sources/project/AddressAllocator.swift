@@ -48,7 +48,7 @@ public class TempAddressAllocator: AddressAllocator {
 
     public func getNext(_ type: DataType) -> Int {
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
-            // TODO: Throw error
+            SemanticError.handle(.internalError)
             return 0 // Dummy return.
         }
         let res: Int
@@ -59,13 +59,13 @@ public class TempAddressAllocator: AddressAllocator {
             nextCounter[type] = res + 1
         } else {
             // return an address from availableAddresses.
-            // TODO: make sure set mutates when removing addresses.
             res = availableAddresses[type]!.removeFirst()
         }
         return res
     }
 
     // Public
+    // Recycles temporary addresses or returns if address is not within temp ranges.
     public func recycle(_ address: Int) {
         let type: DataType
         switch address {
@@ -78,15 +78,14 @@ public class TempAddressAllocator: AddressAllocator {
         case boolStartAddress ..< upperLimit:
             type = .boolType
         default:
-            // TODO: Throw error.
-            return // Dummy return
+            // If it is not a temp address, return.
+            return
         }
 
         // Dictionaries are guaranteed to contain type.
         if address == nextCounter[type]! - 1 {
             nextCounter[type] = address
         } else {
-            // TODO: Make sure set is updated.
             availableAddresses[type]!.insert(address)
         }
     }
@@ -121,7 +120,7 @@ public class VirtualAddressAllocator: AddressAllocator {
 
     func getNext(_ type: DataType) -> Int {
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
-            // TODO: Throw error
+            SemanticError.handle(.internalError)
             return 0 // Dummy return.
         }
         // Type is guaranteed to be a key.

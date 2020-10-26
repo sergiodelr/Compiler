@@ -37,7 +37,7 @@ public enum LangOperator: String {
     case placeholderOp // Used to create a false bottom in the operator stack when parentheses are found in an exp.
 
     // Returns the operator's precedence level. A lower precedence number indicates higher precedence, starting at 0.
-    func precedence() -> Int {
+    public func precedence() -> Int {
         switch self {
         case .notOp, .negOp, .posOp, .placeholderOp:
             return 0
@@ -210,7 +210,7 @@ public enum ExpressionTypeTable {
     ]
 
     // Given an operator and the types of two operands, it returns the resulting data type.
-    static func getDataType(op: LangOperator, type1: DataType, type2: DataType) -> DataType {
+    public static func getDataType(op: LangOperator, type1: DataType, type2: DataType) -> DataType {
         switch op {
         case .consOp:
             if case let DataType.listType(innerType) = type2, type1 == innerType {

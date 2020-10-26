@@ -27,6 +27,7 @@ public enum VMOperator: String {
     case goToFalse
     case goToTrue
     case goTo
+    case placeholder
 }
 
 // Represents a quadruple, which contains a VM operator and the virtual address of its first argument, its second one,
@@ -39,5 +40,12 @@ public struct Quadruple: CustomStringConvertible {
 
     public var description: String {
         return "<\(instruction), \(String(describing:first)), \(String(describing:second)), \(String(describing:res))>"
+    }
+
+    public init(instruction: VMOperator, first: Int?, second: Int?, res: Int?) {
+        self.instruction = instruction
+        self.first = first
+        self.second = second
+        self.res = res
     }
 }

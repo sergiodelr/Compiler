@@ -539,22 +539,31 @@ public class Parser {
 
     func Exp() {
         AndExp()
+        codeGenerator.generateExpQuadruple(op: .orOp)
         while la.kind == 33 /* "|" */ {
             Get()
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             AndExp()
+            codeGenerator.generateExpQuadruple(op: .orOp)
         }
     }
 
+    // MARK: Edited method.
     func AndExp() {
         LogicalExp()
+        codeGenerator.generateExpQuadruple(op: .andOp)
         while la.kind == 34 /* "&" */ {
             Get()
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             LogicalExp()
+            codeGenerator.generateExpQuadruple(op: .andOp)
         }
     }
 
+    // MARK: Edited method.
     func LogicalExp() {
         MathExp()
+        codeGenerator.generateExpQuadruple(op: .eqOp)
         while StartOf(5) {
             switch la.kind {
             case 35 /* "==" */:
@@ -572,46 +581,60 @@ public class Parser {
             default:
                 break
             }
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             MathExp()
+            codeGenerator.generateExpQuadruple(op: .eqOp)
         }
     }
 
+    // MARK: Edited method.
     func MathExp() {
         Term()
+        codeGenerator.generateExpQuadruple(op: .plusOp)
         while la.kind == 41 /* "+" */ || la.kind == 42 /* "-" */ {
             if la.kind == 41 /* "+" */ {
                 Get()
             } else {
                 Get()
             }
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             Term()
+            codeGenerator.generateExpQuadruple(op: .plusOp)
         }
     }
 
+    // MARK: Edited method.
     func Term() {
         ListExp()
+        codeGenerator.generateExpQuadruple(op: .multOp)
         while la.kind == 43 /* "*" */ || la.kind == 44 /* "/" */ {
             if la.kind == 43 /* "*" */ {
                 Get()
             } else {
                 Get()
             }
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             ListExp()
+            codeGenerator.generateExpQuadruple(op: .multOp)
         }
     }
 
     func ListExp() {
         Factor()
+        codeGenerator.generateExpQuadruple(op: .consOp)
         while la.kind == 24 /* ":" */ || la.kind == 45 /* "++" */ {
             if la.kind == 24 /* ":" */ {
                 Get()
             } else {
                 Get()
             }
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             Factor()
+            codeGenerator.generateExpQuadruple(op: .consOp)
         }
     }
 
+    // MARK: Edited method.
     func Factor() {
         if la.kind == 41 /* "+" */ || la.kind == 42 /* "-" */ || la.kind == 46 /* "!" */ {
             if la.kind == 41 /* "+" */ {
@@ -631,6 +654,7 @@ public class Parser {
             Get()
         case _ID:
             Get()
+            let name = t.val
             if la.kind == 26 /* "(" */ {
                 Get()
                 if StartOf(1) {
@@ -642,12 +666,15 @@ public class Parser {
                 }
                 Expect(27 /* ")" */)
             }
+            codeGenerator.pushName(name, line: t.line, col: t.col)
         case 31 /* "[" */:
             List()
         case 26 /* "(" */:
             Get()
+            codeGenerator.pushOperator(.placeholderOp) // False bottom of operator stack.
             SimpleExp()
             Expect(27 /* ")" */)
+            codeGenerator.popOperator() // Remove false bottom.
         default: SynErr(56)
         }
     }
