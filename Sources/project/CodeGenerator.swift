@@ -152,8 +152,9 @@ public class CodeGenerator {
     }
 
     // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
-    // operator's precedence. If not, it does nothing. If the operands' types do not match, an error is thrown.
-    public func generateExpQuadruple(op: LangOperator, line: Int, col: Int) {
+    // operator's precedence. If not, it does nothing. It must be an operator with two operands. If the operands' types
+    // do not match, an error is thrown.
+    public func generateTwoOperandsExpQuadruple(op: LangOperator, line: Int, col: Int) {
         guard let top = operatorStack.top, op.precedence() == top.precedence() else {
             return
         }
@@ -166,6 +167,7 @@ public class CodeGenerator {
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
         guard resultType != .errType else {
+            // TODO: send correct types to error.
             SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
             return
         }
@@ -180,6 +182,41 @@ public class CodeGenerator {
         typeStack.push(resultType)
         tempAllocators.top!.recycle(leftOperand)
         tempAllocators.top!.recycle(rightOperand)
+    }
+
+    // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
+    // operator's precedence. If not, it does nothing. It must be an operator with one operand. If the operand's type
+    // does not match, an error is thrown.
+    public func generateOneOperandExpQuadruple(op: LangOperator, line: Int, col: Int) {
+        guard let top = operatorStack.top, op.precedence() == top.precedence() else {
+            return
+        }
+        // It is guaranteed that stacks contain elements.
+        let operand = operandStack.pop()!
+        let operandType = typeStack.pop()!
+        let topOperator = operatorStack.pop()!
+        let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: operandType, type2: operandType)
+
+        guard resultType != .errType else {
+            let expectedType: DataType
+            if topOperator == .posOp || topOperator == .negOp {
+                expectedType = .intType
+            } else {
+                expectedType = .boolType
+            }
+            SemanticError.handle(.typeMismatch(expected: expectedType, received: operandType), line: line, col: col)
+            return
+        }
+        let result = tempAllocators.top!.getNext(resultType)
+        instructionQueue.push(
+                Quadruple(
+                        instruction: langOperatorToVMOperator(op: topOperator),
+                        first: operand,
+                        second: nil,
+                        res: result))
+        operandStack.push(result)
+        typeStack.push(resultType)
+        tempAllocators.top!.recycle(operand)
     }
 
     public func printQueue() {

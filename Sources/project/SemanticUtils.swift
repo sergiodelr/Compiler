@@ -40,22 +40,24 @@ public enum LangOperator: String {
     // Returns the operator's precedence level. A lower precedence number indicates higher precedence, starting at 0.
     public func precedence() -> Int {
         switch self {
-        case .notOp, .negOp, .posOp, .placeholderOp:
+        case .placeholderOp:
             return 0
-        case .appendOp, .consOp:
+        case .notOp, .negOp, .posOp:
             return 1
-        case .multOp, .divOp:
+        case .appendOp, .consOp:
             return 2
-        case .plusOp, .minusOp:
+        case .multOp, .divOp:
             return 3
-        case .eqOp, .notEqOp, .lThanOp, .gThanOp, .lEqOp, .gEqOp:
+        case .plusOp, .minusOp:
             return 4
-        case .andOp:
+        case .eqOp, .notEqOp, .lThanOp, .gThanOp, .lEqOp, .gEqOp:
             return 5
-        case .orOp:
+        case .andOp:
             return 6
-        case .assgOp:
+        case .orOp:
             return 7
+        case .assgOp:
+            return 8
         }
     }
 }
@@ -200,11 +202,13 @@ public enum ExpressionTypeTable {
                 .charType: .boolType
             ]
         ],
+        // And operator.
         .andOp: [
             .boolType: [
                 .boolType: .boolType
             ]
         ],
+        // Or operator.
         .orOp: [
             .boolType: [
                 .boolType: .boolType
@@ -228,6 +232,16 @@ public enum ExpressionTypeTable {
                case let DataType.listType(innerType2) = type2,
                innerType1 == innerType2 {
                 return .listType(innerType: type1)
+            }
+        case .notOp:
+            if case DataType.boolType = type1 {
+                return .boolType
+            }
+        case .posOp, .negOp:
+            if case DataType.intType = type1 {
+                return .intType
+            } else if case DataType.floatType = type1 {
+                return .floatType
             }
         default:
             return table[op]?[type1]?[type2] ?? .errType
