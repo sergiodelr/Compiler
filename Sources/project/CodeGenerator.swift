@@ -219,10 +219,39 @@ public class CodeGenerator {
         tempAllocators.top!.recycle(operand)
     }
 
+    // Generates quadruples necessary for the start of an if expression. The operand at the top of the stack must be of
+    // type bool or an error will be thrown.
+    public func generateIfStart(line: Int, col: Int) {
+        // Stacks are guaranteed to have values.
+        let expressionType = typeStack.pop()!
+        guard case DataType.boolType = expressionType else {
+            SemanticError.handle(.typeMismatch(expected: .boolType, received: expressionType), line: line, col: col)
+            return
+        }
+        let result = operandStack.pop()!
+        instructionQueue.push(Quadruple(instruction: .goToFalse, first: result, second: nil, res: nil))
+        jumpStack.push(instructionQueue.nextInstruction - 1)
+    }
+
+    // Generates quadruples necessary for the start of the else part of an if expression.
+    public func generateElseStart() {
+        instructionQueue.push(Quadruple(instruction: .goTo, first: nil, second: nil, res: nil))
+        // Stack is guaranteed to contain a value.
+        let falseJump = jumpStack.pop()!
+        jumpStack.push(instructionQueue.nextInstruction - 1)
+        instructionQueue.fillResult(at: falseJump, result: instructionQueue.nextInstruction)
+    }
+
+    // Generates quadruples necessary for the end of an if expression.
+    public func generateIfEnd() {
+        // Stack is guaranteed to contain a value.
+        let endJump = jumpStack.pop()!
+        instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
+    }
+
     public func printQueue() {
-        // TODO: Iterate queue directly.
         for i in 0 ..< instructionQueue.count {
-            print(String(describing: instructionQueue[i]))
+            print("\(i). \(String(describing: instructionQueue[i]))")
         }
     }
 }

@@ -525,13 +525,17 @@ public class Parser {
         return .noneType
     }
 
+    // MARK: Edited method.
     func IfExp() {
         Expect(_IFT)
         Exp()
         Expect(_THEN)
+        codeGenerator.generateIfStart(line: t.line, col: t.col)
         SimpleExp()
         Expect(_ELSE)
+        codeGenerator.generateElseStart()
         SimpleExp()
+        codeGenerator.generateIfEnd()
     }
 
     func Exp() {
