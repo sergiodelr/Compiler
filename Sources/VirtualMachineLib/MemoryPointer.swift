@@ -18,5 +18,5 @@ public enum MemoryPointer {
     // Literal
     public static let literalStartAddress = 3000
 
-    public static let addressesPerType = 250
+    public static let addressesPerType = 200
 }

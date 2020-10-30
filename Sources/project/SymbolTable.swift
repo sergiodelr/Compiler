@@ -19,6 +19,15 @@ public class SymbolTable: CustomDebugStringConvertible {
         public var dataType: DataType = .noneType
         public var kind: SymbolKind = .noKind
         public var address: Int? = nil
+        public var instructionPointer: Int? = nil
+
+        public init(name: String, dataType: DataType, kind: SymbolKind, address: Int?) {
+            self.name = name
+            self.dataType = dataType
+            self.kind = kind
+            self.address = address
+        }
+
         public var debugDescription: String { return "n: \(name), t: \(dataType), k: \(kind)" }
     }
 
@@ -40,7 +49,7 @@ public class SymbolTable: CustomDebugStringConvertible {
         }
         set {
             table[name] = newValue
-            // print(String(reflecting: self))
+            print(String(reflecting: self))
         }
     }
 

@@ -26,6 +26,23 @@ public class TempAddressAllocator: AddressAllocator {
     private let floatStartAddress: Int
     private let charStartAddress: Int
     private let boolStartAddress: Int
+    private let functionStartAddress: Int
+
+    // Gets next function address.
+    private func getNextFunc() -> Int {
+        let res: Int
+        let type = DataType.funcType(paramTypes: [], returnType: .noneType)
+        // availableAddresses is guaranteed to contain key.
+        if availableAddresses[type]!.isEmpty {
+            // return current counter and increase it.
+            res = nextCounter[type]!
+            nextCounter[type] = res + 1
+        } else {
+            // return an address from availableAddresses.
+            res = availableAddresses[type]!.removeFirst()
+        }
+        return res
+    }
 
     // AddressAllocator
     required public init(startAddress: Int, addressesPerType: Int) {
@@ -33,20 +50,28 @@ public class TempAddressAllocator: AddressAllocator {
         floatStartAddress = startAddress + addressesPerType
         charStartAddress = startAddress + 2 * addressesPerType
         boolStartAddress = startAddress + 3 * addressesPerType
-        upperLimit = startAddress + 4 * addressesPerType
+        functionStartAddress = startAddress + 4 * addressesPerType
+        upperLimit = startAddress + 5 * addressesPerType
 
         nextCounter[.intType] = intStartAddress
         nextCounter[.floatType] = floatStartAddress
         nextCounter[.charType] = charStartAddress
         nextCounter[.boolType] = boolStartAddress
+        nextCounter[.funcType(paramTypes: [], returnType: .noneType)] = functionStartAddress
 
         availableAddresses[.intType] = Set<Int>()
         availableAddresses[.floatType] = Set<Int>()
         availableAddresses[.charType] = Set<Int>()
         availableAddresses[.boolType] = Set<Int>()
+        availableAddresses[.funcType(paramTypes: [], returnType: .noneType)] = Set<Int>()
     }
 
+    // Gets the next address from the specified type.
     public func getNext(_ type: DataType) -> Int {
+        if case DataType.funcType = type {
+            return getNextFunc()
+        }
+
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
             SemanticError.handle(.internalError)
             return 0 // Dummy return.
@@ -75,8 +100,10 @@ public class TempAddressAllocator: AddressAllocator {
             type = .floatType
         case charStartAddress ..< boolStartAddress:
             type = .charType
-        case boolStartAddress ..< upperLimit:
+        case boolStartAddress ..< functionStartAddress:
             type = .boolType
+        case functionStartAddress ..< upperLimit:
+            type = .funcType(paramTypes: [], returnType: .noneType)
         default:
             // If it is not a temp address, return.
             return
@@ -103,22 +130,38 @@ public class VirtualAddressAllocator: AddressAllocator {
     private let floatStartAddress: Int
     private let charStartAddress: Int
     private let boolStartAddress: Int
-    
+    private let functionStartAddress: Int
+
+    // Gets next function address.
+    private func getNextFunc() -> Int {
+        let type = DataType.funcType(paramTypes: [], returnType: .noneType)
+        // Type is guaranteed to be a key.
+        let res = nextCounter[type]!
+        nextCounter[type] = res + 1
+        return res
+    }
+
     // AddressAllocator
     required init(startAddress: Int, addressesPerType: Int) {
         intStartAddress = startAddress
         floatStartAddress = startAddress + addressesPerType
         charStartAddress = startAddress + 2 * addressesPerType
         boolStartAddress = startAddress + 3 * addressesPerType
-        upperLimit = startAddress + 4 * addressesPerType
+        functionStartAddress = startAddress + 4 * addressesPerType
+        upperLimit = startAddress + 5 * addressesPerType
 
         nextCounter[.intType] = intStartAddress
         nextCounter[.floatType] = floatStartAddress
         nextCounter[.charType] = charStartAddress
         nextCounter[.boolType] = boolStartAddress
+        nextCounter[.funcType(paramTypes: [], returnType: .noneType)] = functionStartAddress
     }
 
     func getNext(_ type: DataType) -> Int {
+        if case DataType.funcType = type {
+            return getNextFunc()
+        }
+
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
             SemanticError.handle(.internalError)
             return 0 // Dummy return.

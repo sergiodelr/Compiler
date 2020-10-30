@@ -271,24 +271,14 @@ public class Parser {
         return res
     }
 
-    // MARK: Edited method.
-    // Returns the expression's data type.
-    @discardableResult
-    func Expression() -> DataType {
-        var res = DataType.noneType
+    func Expression() {
         if la.kind == _LAMBDA {
-            // Set current symbol table to lambda symbol table.
-            codeGenerator.newSymbolTable()
-            res = LambdaExp()
-            // Reset current symbol table.
-            codeGenerator.deleteSymbolTable()
+            LambdaExp()
         } else if StartOf(3) {
-            res = SimpleExp()
+            SimpleExp()
         } else {
-            res = .errType
             SynErr(51)
         }
-        return res
     }
 
     // MARK: Edited method.
@@ -473,11 +463,13 @@ public class Parser {
     }
 
     // MARK: Edited method.
-    // Creates a Symbol Entry for each parameter in the lambda and stores it in the current symbol table or marks error.
-    // Returns lambda's type.
-    func LambdaExp() -> DataType {
+    // Creates a Symbol Entry for each parameter in the lambda and stores it in the lambda's symbol table or marks
+    // error.
+    func LambdaExp() {
         Expect(_LAMBDA)
         var paramTypes = [DataType]()
+        // Set current symbol table to lambda symbol table.
+        codeGenerator.newSymbolTable()
         Expect(26 /* "(" */)
         if la.kind == _ID {
             Get()
@@ -502,22 +494,17 @@ public class Parser {
         Expect(27 /* ")" */)
         Expect(24 /* ":" */)
         let returnType = Type()
-        let res = DataType.funcType(paramTypes: paramTypes, returnType: returnType)
         Expect(28 /* "{" */)
         Expression()
-        // TODO: check type. Delete expression call above.
-//        let expressionType = Expression()
-//        guard expressionType == res else {
-//            // TODO: Type mismatch.
-//            throw SemanticError.typeMismatch
-//        }
         Expect(29 /* "}" */)
-        return res
+        codeGenerator.generateFuncEnd(line: t.line, col: t.col)
+        // Reset current symbol table.
+        codeGenerator.deleteSymbolTable()
+        codeGenerator.pushLambda(type: .funcType(paramTypes: paramTypes, returnType: returnType))
     }
 
     // MARK: Edited method
-    @discardableResult
-    func SimpleExp() -> DataType {
+    func SimpleExp() {
         if la.kind == _IFT {
             IfExp()
         } else if StartOf(4) {
@@ -525,7 +512,6 @@ public class Parser {
         } else {
             SynErr(55)
         }
-        return .noneType
     }
 
     // MARK: Edited method.
@@ -673,6 +659,7 @@ public class Parser {
         case _ID:
             Get()
             let name = t.val
+            codeGenerator.pushName(name, line: t.line, col: t.col)
             if la.kind == 26 /* "(" */ {
                 Get()
                 if StartOf(1) {
@@ -684,7 +671,6 @@ public class Parser {
                 }
                 Expect(27 /* ")" */)
             }
-            codeGenerator.pushName(name, line: t.line, col: t.col)
         case 31 /* "[" */:
             List()
         case 26 /* "(" */:

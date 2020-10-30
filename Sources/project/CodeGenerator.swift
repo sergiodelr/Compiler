@@ -142,6 +142,13 @@ public class CodeGenerator {
         typeStack.push(type)
     }
 
+    // Pushes a lambda to the operand stack and its type to the type stack.
+    public func pushLambda(type: DataType) {
+        let lambdaAddress = tempAllocators.top!.getNext(.funcType(paramTypes: [], returnType: .noneType))
+        operandStack.push(lambdaAddress)
+        typeStack.push(type)
+    }
+
     // Pops an operand from the operand stack and its type from the type stack.
     public func popOperand() {
         operandStack.pop()
@@ -285,6 +292,14 @@ public class CodeGenerator {
 
         let endJump = jumpStack.pop()!
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
+    }
+
+    public func generateFuncEnd(line: Int, col: Int) {
+        // TODO: Finish implementing method.
+        // Stacks are guaranteed to contain values.
+        let returnVal = operandStack.pop()!
+        let returnType = typeStack.pop()!
+        instructionQueue.push(Quadruple(instruction: .ret, first: nil, second: nil, res: returnVal))
     }
 
     public func printQueue() {

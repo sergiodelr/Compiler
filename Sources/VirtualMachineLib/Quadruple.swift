@@ -27,6 +27,7 @@ public enum VMOperator: String {
     case goToFalse
     case goToTrue
     case goTo
+    case ret
     case placeholder
 }
 
