@@ -130,6 +130,7 @@ public class CodeGenerator {
         typeStack.push(foundEntry.dataType)
     }
 
+    // Pushes a literal to the literal map and its type to the type stack.
     public func pushLiteral(_ literal: String, type: DataType) {
         if let literalAddress = literalDict[literal] {
             operandStack.push(literalAddress)
@@ -139,6 +140,12 @@ public class CodeGenerator {
             operandStack.push(nextAddress)
         }
         typeStack.push(type)
+    }
+
+    // Pops an operand from the operand stack and its type from the type stack.
+    public func popOperand() {
+        operandStack.pop()
+        typeStack.pop()
     }
 
     // Pushes an operator to the operator stack.
@@ -171,15 +178,24 @@ public class CodeGenerator {
             SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
             return
         }
-        let result = tempAllocators.top!.getNext(resultType)
-        instructionQueue.push(
-                Quadruple(
-                        instruction: langOperatorToVMOperator(op: topOperator),
-                        first: leftOperand,
-                        second: rightOperand,
-                        res: result))
-        operandStack.push(result)
-        typeStack.push(resultType)
+        if topOperator != .assgOp {
+            let result = tempAllocators.top!.getNext(resultType)
+            instructionQueue.push(
+                    Quadruple(
+                            instruction: langOperatorToVMOperator(op: topOperator),
+                            first: leftOperand,
+                            second: rightOperand,
+                            res: result))
+            operandStack.push(result)
+            typeStack.push(resultType)
+        } else {
+            instructionQueue.push(
+                    Quadruple(
+                            instruction: langOperatorToVMOperator(op: topOperator),
+                            first: rightOperand,
+                            second: nil,
+                            res: leftOperand))
+        }
         tempAllocators.top!.recycle(leftOperand)
         tempAllocators.top!.recycle(rightOperand)
     }
@@ -235,16 +251,38 @@ public class CodeGenerator {
 
     // Generates quadruples necessary for the start of the else part of an if expression.
     public func generateElseStart() {
+        // Copy result of then expression to a temp. Pop actual result from stack.
+        // Stacks are guaranteed to contain values.
+        let thenResult = operandStack.pop()!
+        let thenType = typeStack.top!
+        let tempResult = tempAllocators.top!.getNext(thenType)
+        instructionQueue.push(Quadruple(instruction: .assign, first: thenResult, second: nil, res: tempResult))
+        operandStack.push(tempResult)
+        tempAllocators.top!.recycle(thenResult)
+
+        // Goto statement to skip else expression.
         instructionQueue.push(Quadruple(instruction: .goTo, first: nil, second: nil, res: nil))
-        // Stack is guaranteed to contain a value.
         let falseJump = jumpStack.pop()!
         jumpStack.push(instructionQueue.nextInstruction - 1)
         instructionQueue.fillResult(at: falseJump, result: instructionQueue.nextInstruction)
     }
 
-    // Generates quadruples necessary for the end of an if expression.
-    public func generateIfEnd() {
-        // Stack is guaranteed to contain a value.
+    // Generates quadruples necessary for the end of an if expression. If intermediate expressions of the if-else
+    // expression are not of the same type, an error is thrown.
+    public func generateIfEnd(line: Int, col: Int) {
+        // Overwrite result from then expression.
+        // Stacks are guaranteed to contain values.
+        let elseResult = operandStack.pop()!
+        let elseType = typeStack.pop()!
+        let thenResult = operandStack.top!
+        let thenType = typeStack.top!
+        guard thenType == elseType else {
+            SemanticError.handle(.typeMismatch(expected: thenType, received: elseType), line: line, col: col)
+            return // Dummy return.
+        }
+        instructionQueue.push(Quadruple(instruction: .assign, first: elseResult, second: nil, res: thenResult))
+        tempAllocators.top!.recycle(elseResult)
+
         let endJump = jumpStack.pop()!
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }

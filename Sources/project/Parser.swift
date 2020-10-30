@@ -455,10 +455,13 @@ public class Parser {
 
         let type = Type()
         codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+        codeGenerator.pushName(name, line: t.line, col: t.col)
 
         Expect(25 /* "=" */)
+        codeGenerator.pushOperator(.assgOp)
         if StartOf(1) {
             Expression()
+            codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
         } else if la.kind == _READ {
             // TODO: Only allow read in main function.
             Get()
@@ -535,7 +538,7 @@ public class Parser {
         Expect(_ELSE)
         codeGenerator.generateElseStart()
         SimpleExp()
-        codeGenerator.generateIfEnd()
+        codeGenerator.generateIfEnd(line: t.line, col: t.col)
     }
 
     func Exp() {
