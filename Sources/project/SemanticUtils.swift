@@ -222,6 +222,10 @@ public enum ExpressionTypeTable {
         case .assgOp:
             if type1 == type2 {
                 return type1
+            } else if case DataType.intType = type1, case DataType.floatType = type2 {
+                return type1
+            } else if case DataType.floatType = type1, case DataType.intType = type2 {
+                return type1
             }
         case .consOp:
             if case let DataType.listType(innerType) = type2, type1 == innerType {
