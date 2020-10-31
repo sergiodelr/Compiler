@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import VirtualMachineLib
 
 public enum SemanticError: Error {
     case multipleDeclaration(symbol: String)

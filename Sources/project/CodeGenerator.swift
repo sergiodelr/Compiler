@@ -21,8 +21,8 @@ public class CodeGenerator {
     private var literalAllocator: VirtualAddressAllocator
     // Local const allocators.
     private var localAllocators: Stack<VirtualAddressAllocator>
-    // Maps from a string with a literal value to its virtual address.
-    private var literalDict: [String: Int]
+    // Maps from a string with a literal value to its literal value entry.
+    private var literalDict: [String: ValueEntry]
 
 
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
@@ -56,7 +56,7 @@ public class CodeGenerator {
         jumpStack = Stack<Int>()
         globalTable = SymbolTable()
         symbolTable = globalTable
-        literalDict = [String: Int]()
+        literalDict = [String: ValueEntry]()
 
         tempAllocators = Stack<TempAddressAllocator>()
         tempAllocators.push(TempAddressAllocator(
@@ -132,11 +132,12 @@ public class CodeGenerator {
 
     // Pushes a literal to the literal map and its type to the type stack.
     public func pushLiteral(_ literal: String, type: DataType) {
-        if let literalAddress = literalDict[literal] {
-            operandStack.push(literalAddress)
+        let value = valueFromString(literal, type: type)
+        if let literalValueEntry = literalDict[literal] {
+            operandStack.push(literalValueEntry.address)
         } else {
             let nextAddress = literalAllocator.getNext(type)
-            literalDict[literal] = nextAddress
+            literalDict[literal] = LiteralValueEntry(address: nextAddress, value: value, type: type)
             operandStack.push(nextAddress)
         }
         typeStack.push(type)
@@ -144,7 +145,12 @@ public class CodeGenerator {
 
     // Pushes a lambda to the operand stack and its type to the type stack.
     public func pushLambda(type: DataType) {
-        let lambdaAddress = tempAllocators.top!.getNext(.funcType(paramTypes: [], returnType: .noneType))
+        // Stacks are guaranteed to contain values.
+        let lambdaAddress = literalAllocator.getNext(.funcType(paramTypes: [], returnType: .noneType))
+        let lambdaStart = jumpStack.pop()!
+        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart)
+        // Store lambda literal in dictionary. Names won't collide.
+        literalDict["lambda\(lambdaStart)"] = valueEntry
         operandStack.push(lambdaAddress)
         typeStack.push(type)
     }
@@ -294,6 +300,11 @@ public class CodeGenerator {
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }
 
+    public func generateFuncStart() {
+        jumpStack.push(instructionQueue.nextInstruction)
+    }
+
+    // Generates quadruples necessary for function ends.
     public func generateFuncEnd(line: Int, col: Int) {
         // TODO: Finish implementing method.
         // Stacks are guaranteed to contain values.
@@ -353,6 +364,27 @@ extension CodeGenerator {
         default:
             SemanticError.handle(.internalError)
             return .placeholder // Dummy return.
+        }
+    }
+
+    // Builds a value entry.
+    private func valueFromString(_ stringValue: String, type: DataType) -> Any {
+        // stringValue is guaranteed to be valid.
+        switch type {
+        case .intType:
+            return Int(stringValue)!
+        case .floatType:
+            return Float(stringValue)!
+        case .charType:
+            var value = stringValue
+            value.removeFirst()
+            value.popLast()
+            return value
+        case .boolType:
+            return stringValue == "true"
+        default:
+            SemanticError.handle(.internalError)
+            return 0 // Dummy return.
         }
     }
 }

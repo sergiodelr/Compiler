@@ -30,6 +30,7 @@
 -------------------------------------------------------------------------*/
 
 import Foundation
+import VirtualMachineLib
 
 public class Parser {
     public let _EOF = 0
@@ -495,9 +496,12 @@ public class Parser {
         Expect(24 /* ":" */)
         let returnType = Type()
         Expect(28 /* "{" */)
+        codeGenerator.generateFuncStart()
+
         Expression()
         Expect(29 /* "}" */)
         codeGenerator.generateFuncEnd(line: t.line, col: t.col)
+
         // Reset current symbol table.
         codeGenerator.deleteSymbolTable()
         codeGenerator.pushLambda(type: .funcType(paramTypes: paramTypes, returnType: returnType))

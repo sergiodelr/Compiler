@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import VirtualMachineLib
 
 // Describes the requirements for an address allocator. Must have an initializer with the initial address of the
 // memory section and the number of addresses per type. Must also have a method to get next available address

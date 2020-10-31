@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import VirtualMachineLib
 
 // Symbol table containing relevant information about variables and functions. Each entry optionally contains a
 // reference to its own symbol table and to its parent table.
