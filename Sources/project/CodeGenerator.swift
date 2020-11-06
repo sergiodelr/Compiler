@@ -26,7 +26,7 @@ public class CodeGenerator {
 
 
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
-    func find(name: String) -> SymbolTable.Entry? {
+    private func find(name: String) -> SymbolTable.Entry? {
         var tempTable: SymbolTable? = symbolTable
         while tempTable != nil {
             // Temp table is not nil
@@ -36,6 +36,19 @@ public class CodeGenerator {
             tempTable = tempTable!.parent
         }
         return nil
+    }
+
+    // Imports the symbol in the given entry to the current table.
+    private func importSymbol(entry: SymbolTable.Entry) {
+        guard !symbolTable.find(entry.name) else {
+            SemanticError.handle(.symbolAmbiguity(symbol: entry.name))
+            return // Dummy return.
+        }
+        symbolTable[entry.name] = SymbolTable.Entry(
+                name: entry.name,
+                dataType: entry.dataType,
+                kind: entry.kind,
+                address: localAllocators.top!.getNext(entry.dataType))
     }
 
     // Public
@@ -148,8 +161,9 @@ public class CodeGenerator {
         // Stacks are guaranteed to contain values.
         let lambdaAddress = literalAllocator.getNext(.funcType(paramTypes: [], returnType: .noneType))
         let lambdaStart = jumpStack.pop()!
-        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart)
+        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart, type: type)
         // Store lambda literal in dictionary. Names won't collide.
+        // TODO: Check this assertion.
         literalDict["lambda\(lambdaStart)"] = valueEntry
         operandStack.push(lambdaAddress)
         typeStack.push(type)
@@ -300,8 +314,19 @@ public class CodeGenerator {
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }
 
+    // Generates quadruples necessary for function starts. Imports symbols from context to current table.
     public func generateFuncStart() {
-        jumpStack.push(instructionQueue.nextInstruction)
+        // Import local symbols from context.
+        // Table is guaranteed to have a parent.
+        let tempTable = symbolTable.parent!
+        for entry in tempTable.entries {
+            importSymbol(entry: entry)
+            // TODO: generate quadruples to copy values.
+        }
+
+        // Generate goto quadruple to jump function body.
+        instructionQueue.push(Quadruple(instruction: .goTo, first: nil, second: nil, res: nil))
+        jumpStack.push(instructionQueue.nextInstruction - 1)
     }
 
     // Generates quadruples necessary for function ends.
@@ -310,7 +335,9 @@ public class CodeGenerator {
         // Stacks are guaranteed to contain values.
         let returnVal = operandStack.pop()!
         let returnType = typeStack.pop()!
+        let funcStartIndex = jumpStack.top!
         instructionQueue.push(Quadruple(instruction: .ret, first: nil, second: nil, res: returnVal))
+        instructionQueue.fillResult(at: funcStartIndex, result: instructionQueue.nextInstruction)
     }
 
     public func printQueue() {

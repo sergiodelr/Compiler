@@ -650,6 +650,7 @@ public class Parser {
             }
             codeGenerator.pushOperator(op)
         }
+        // TODO: Add true and false literals.
         switch la.kind {
         case _INTCONS:
             Get()
@@ -665,6 +666,7 @@ public class Parser {
             let name = t.val
             codeGenerator.pushName(name, line: t.line, col: t.col)
             if la.kind == 26 /* "(" */ {
+                //let paramList
                 Get()
                 if StartOf(1) {
                     Expression()

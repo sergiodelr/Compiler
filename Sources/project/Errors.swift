@@ -10,6 +10,7 @@ public enum SemanticError: Error {
     case typeMismatch(expected: DataType, received: DataType)
     case symbolNotDeclared(symbol: String)
     case internalError
+    case symbolAmbiguity(symbol: String)
 
     func description() -> String {
         switch self {
@@ -21,6 +22,8 @@ public enum SemanticError: Error {
             return "Symbol not declared. Symbol: \(symbol)"
         case .internalError:
             return "Internal semantic error."
+        case let .symbolAmbiguity(symbol):
+            return "Ambiguous symbol. Symbol: \(symbol)"
         }
     }
 

@@ -20,7 +20,6 @@ public class SymbolTable: CustomDebugStringConvertible {
         public var dataType: DataType = .noneType
         public var kind: SymbolKind = .noKind
         public var address: Int? = nil
-        public var instructionPointer: Int? = nil
 
         public init(name: String, dataType: DataType, kind: SymbolKind, address: Int?) {
             self.name = name
@@ -37,6 +36,10 @@ public class SymbolTable: CustomDebugStringConvertible {
 
     // Public
     public var parent: SymbolTable?
+
+    public var entries: [SymbolTable.Entry] {
+        return Array(table.values)
+    }
 
     public init( parent: SymbolTable? = nil) {
         table = [:]

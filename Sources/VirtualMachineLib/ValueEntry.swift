@@ -26,13 +26,24 @@ public struct FuncValueEntry: ValueEntry {
     public let address: Int
     public let value: Any
     public var type: DataType { return .funcType(paramTypes: [], returnType: .noneType) }
+    public let paramTypes: [DataType]
+    public let returnType: DataType
     // TODO: update counts.
-    public let paramCount: Int = 0
-    public let tempCount: Int = 0
-    public let constCount: Int = 0
+    public var paramCount: Int { return paramTypes.count }
+    public var tempCount: Int = 0
+    public var constCount: Int = 0
 
-    public init(address: Int, value: Int) {
+    public init(address: Int, value: Int, type: DataType) {
         self.address = address
         self.value = value
+        // Condition will always be true.
+        if case let DataType.funcType(paramTypes , returnType) = type{
+            self.paramTypes = paramTypes
+            self.returnType = returnType
+        } else {
+            self.paramTypes = []
+            self.returnType = .noneType
+        }
+
     }
 }
