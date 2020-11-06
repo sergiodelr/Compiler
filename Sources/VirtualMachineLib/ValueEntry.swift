@@ -32,6 +32,7 @@ public struct FuncValueEntry: ValueEntry {
     public var paramCount: Int { return paramTypes.count }
     public var tempCount: Int = 0
     public var constCount: Int = 0
+    public var context = [ValueEntry]()
 
     public init(address: Int, value: Int, type: DataType) {
         self.address = address

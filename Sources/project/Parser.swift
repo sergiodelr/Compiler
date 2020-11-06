@@ -496,15 +496,13 @@ public class Parser {
         Expect(24 /* ":" */)
         let returnType = Type()
         Expect(28 /* "{" */)
-        codeGenerator.generateFuncStart()
+        codeGenerator.generateFuncStart(type: .funcType(paramTypes: paramTypes, returnType: returnType))
 
         Expression()
         Expect(29 /* "}" */)
         codeGenerator.generateFuncEnd(line: t.line, col: t.col)
-
         // Reset current symbol table.
         codeGenerator.deleteSymbolTable()
-        codeGenerator.pushLambda(type: .funcType(paramTypes: paramTypes, returnType: returnType))
     }
 
     // MARK: Edited method

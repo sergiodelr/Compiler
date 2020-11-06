@@ -37,17 +37,20 @@ public class CodeGenerator {
         return nil
     }
 
-    // Imports the symbol in the given entry to the current table.
-    private func importSymbol(entry: SymbolTable.Entry) {
+    // Imports the symbol in the given entry to the current table. Returns the entry's address.
+    private func importSymbol(entry: SymbolTable.Entry) -> Int {
         guard !symbolTable.find(entry.name) else {
             SemanticError.handle(.symbolAmbiguity(symbol: entry.name))
-            return // Dummy return.
+            return 0 // Dummy return.
         }
+
+        let address = localAllocators.top!.getNext(entry.dataType)
         symbolTable[entry.name] = SymbolTable.Entry(
                 name: entry.name,
                 dataType: entry.dataType,
                 kind: entry.kind,
-                address: localAllocators.top!.getNext(entry.dataType))
+                address: address)
+        return address
     }
 
     // Public
@@ -125,8 +128,6 @@ public class CodeGenerator {
                 startAddress: MemoryPointer.localStartAddress,
                 addressesPerType: MemoryPointer.addressesPerType
         ))
-        tempCount = 0
-        constCount = 0
     }
 
     // Returns to the parent symbol table if there is one, deleting the current one.
@@ -162,15 +163,13 @@ public class CodeGenerator {
         typeStack.push(type)
     }
 
-    // Pushes a lambda to the operand stack and its type to the type stack.
-    public func pushLambda(type: DataType) {
-        // Stacks are guaranteed to contain values.
-        let lambdaAddress = literalAllocator.getNext(.funcType(paramTypes: [], returnType: .noneType))
-        let lambdaStart = jumpStack.pop()!
-        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart, type: type)
+    // Pushes a lambda, given its address and type, to the operand stack and its type to the type stack.
+    public func pushLambda(address: Int, type: DataType) {
+        let lambdaStart = instructionQueue.nextInstruction
+        let valueEntry = FuncValueEntry(address: address, value: lambdaStart, type: type)
         // Store lambda literal in dictionary. Names won't collide.
-        literalDict["lambda\(lambdaAddress)"] = valueEntry
-        operandStack.push(lambdaAddress)
+        literalDict["lambda\(address)"] = valueEntry
+        operandStack.push(address)
         typeStack.push(type)
     }
 
@@ -319,19 +318,34 @@ public class CodeGenerator {
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }
 
-    // Generates quadruples necessary for function starts. Imports symbols from context to current table.
-    public func generateFuncStart() {
+    // Creates a lambda literal. Generates quadruples necessary for function starts. Imports symbols from context to
+    // current table.
+    public func generateFuncStart(type: DataType) {
+        // Create lambda literal.
+        // Stacks are guaranteed to contain values.
+        let lambdaAddress = literalAllocator.getNext(.funcType(paramTypes: [], returnType: .noneType))
+
+        // TODO: Prevent const where lambda will be assigned from being imported.
         // Import local symbols from context.
         // Table is guaranteed to have a parent.
         let tempTable = symbolTable.parent!
-        for entry in tempTable.entries {
-            importSymbol(entry: entry)
-            // TODO: generate quadruples to copy values.
+        var newAddress: Int
+        if tempTable !== globalTable {
+            for entry in tempTable.entries {
+                newAddress = importSymbol(entry: entry)
+                instructionQueue.push(
+                        Quadruple(
+                                instruction: .importCon,
+                                first: lambdaAddress,
+                                second: entry.address,
+                                res: newAddress))
+            }
         }
-
         // Generate goto quadruple to jump function body.
         instructionQueue.push(Quadruple(instruction: .goTo, first: nil, second: nil, res: nil))
         jumpStack.push(instructionQueue.nextInstruction - 1)
+
+        pushLambda(address: lambdaAddress, type: type)
     }
 
     // Generates quadruples necessary for function ends.
@@ -340,7 +354,7 @@ public class CodeGenerator {
         // Stacks are guaranteed to contain values.
         let returnVal = operandStack.pop()!
         let returnType = typeStack.pop()!
-        let funcStartIndex = jumpStack.top!
+        let funcStartIndex = jumpStack.pop()!
         instructionQueue.push(Quadruple(instruction: .ret, first: nil, second: nil, res: returnVal))
         instructionQueue.fillResult(at: funcStartIndex, result: instructionQueue.nextInstruction)
     }
