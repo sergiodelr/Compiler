@@ -11,8 +11,14 @@ import VirtualMachineLib
 protocol AddressAllocator {
     init(startAddress: Int, addressesPerType: Int)
     func getNext(_ type: DataType) -> Int
+    var maxIntCount: Int  { get }
+    var maxFloatCount: Int { get }
+    var maxCharCount: Int { get }
+    var maxBoolCount: Int { get }
+    var maxFuncCount: Int { get }
 }
 
+// TODO: Refactor this as a subclass of VirtualAddressAllocator
 // Handles virtual memory for temporary variables. Can allocate more memory addresses or recycle them as needed.
 public class TempAddressAllocator: AddressAllocator {
     // Private
@@ -28,6 +34,23 @@ public class TempAddressAllocator: AddressAllocator {
     private let charStartAddress: Int
     private let boolStartAddress: Int
     private let functionStartAddress: Int
+    // Address counts.
+    // If the new count is greater than the current max count, max count takes its value.
+    private var intCount = 0 {
+        willSet { if newValue > maxIntCount { maxIntCount = newValue } }
+    }
+    private var floatCount = 0 {
+        willSet { if newValue > maxFloatCount { maxFloatCount = newValue } }
+    }
+    private var charCount = 0 {
+        willSet { if newValue > maxCharCount { maxCharCount = newValue } }
+    }
+    private var boolCount = 0 {
+        willSet { if newValue > maxBoolCount { maxBoolCount = newValue } }
+    }
+    private var funcCount = 0 {
+        willSet { if newValue > maxFuncCount { maxFuncCount = newValue } }
+    }
 
     // Gets next function address.
     private func getNextFunc() -> Int {
@@ -38,6 +61,7 @@ public class TempAddressAllocator: AddressAllocator {
             // return current counter and increase it.
             res = nextCounter[type]!
             nextCounter[type] = res + 1
+            addToCount(type: type, amount: 1)
         } else {
             // return an address from availableAddresses.
             res = availableAddresses[type]!.removeFirst()
@@ -45,7 +69,31 @@ public class TempAddressAllocator: AddressAllocator {
         return res
     }
 
+    // Adds the given amount to the count of the given type.
+    private func addToCount(type: DataType, amount: Int) {
+        switch type {
+        case .intType:
+            intCount += amount
+        case .floatType:
+            floatCount += amount
+        case .charType:
+            charCount += amount
+        case .boolType:
+            boolCount += amount
+        case .funcType:
+            funcCount += amount
+        default:
+            return
+        }
+    }
+
     // AddressAllocator
+    public private(set) var maxIntCount = 0
+    public private(set) var maxFloatCount = 0
+    public private(set) var maxCharCount = 0
+    public private(set) var maxBoolCount = 0
+    public private(set) var maxFuncCount = 0
+
     required public init(startAddress: Int, addressesPerType: Int) {
         intStartAddress = startAddress
         floatStartAddress = startAddress + addressesPerType
@@ -83,6 +131,7 @@ public class TempAddressAllocator: AddressAllocator {
             // return current counter and increase it.
             res = nextCounter[type]!
             nextCounter[type] = res + 1
+            addToCount(type: type, amount: 1)
         } else {
             // return an address from availableAddresses.
             res = availableAddresses[type]!.removeFirst()
@@ -113,6 +162,7 @@ public class TempAddressAllocator: AddressAllocator {
         // Dictionaries are guaranteed to contain type.
         if address == nextCounter[type]! - 1 {
             nextCounter[type] = address
+            addToCount(type: type, amount: -1)
         } else {
             availableAddresses[type]!.insert(address)
         }
@@ -126,6 +176,8 @@ public class VirtualAddressAllocator: AddressAllocator {
     private var nextCounter = [DataType: Int]()
     // Upper address limit. Addresses must be less than this.
     private let upperLimit: Int
+    // Addresses per type.
+    private let addressesPerType: Int
     // Initial addresses for each type.
     private let intStartAddress: Int
     private let floatStartAddress: Int
@@ -143,7 +195,17 @@ public class VirtualAddressAllocator: AddressAllocator {
     }
 
     // AddressAllocator
+    // The max amount of addresses allocated for each type is equal to the next address % the amount of addresses.
+    public var maxIntCount: Int { return nextCounter[.intType]! % addressesPerType }
+    public var maxFloatCount: Int { return nextCounter[.floatType]! % addressesPerType }
+    public var maxCharCount: Int { return nextCounter[.charType]! % addressesPerType }
+    public var maxBoolCount: Int { return nextCounter[.boolType]! % addressesPerType }
+    public var maxFuncCount: Int {
+        return nextCounter[.funcType(paramTypes: [], returnType: .noneType)]! % addressesPerType
+    }
+
     required init(startAddress: Int, addressesPerType: Int) {
+        self.addressesPerType = addressesPerType
         intStartAddress = startAddress
         floatStartAddress = startAddress + addressesPerType
         charStartAddress = startAddress + 2 * addressesPerType

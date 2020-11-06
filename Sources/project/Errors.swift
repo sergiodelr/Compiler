@@ -11,6 +11,7 @@ public enum SemanticError: Error {
     case symbolNotDeclared(symbol: String)
     case internalError
     case symbolAmbiguity(symbol: String)
+    case genTypeNotSupported
 
     func description() -> String {
         switch self {
@@ -24,6 +25,8 @@ public enum SemanticError: Error {
             return "Internal semantic error."
         case let .symbolAmbiguity(symbol):
             return "Ambiguous symbol. Symbol: \(symbol)"
+        case .genTypeNotSupported:
+            return "Generic type is not yet supported."
         }
     }
 

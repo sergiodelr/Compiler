@@ -24,7 +24,6 @@ public class CodeGenerator {
     // Maps from a string with a literal value to its literal value entry.
     private var literalDict: [String: ValueEntry]
 
-
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
     private func find(name: String) -> SymbolTable.Entry? {
         var tempTable: SymbolTable? = symbolTable
@@ -92,23 +91,28 @@ public class CodeGenerator {
             return // Dummy return. Fatal error will be thrown above.
         }
 
-        let kind: SymbolTable.SymbolKind
+        // Would be better with a guard case, but it is not possible.
+        if case DataType.genType = type {
+            SemanticError.handle(.genTypeNotSupported, line: line, col: col)
+        } else {
+            let kind: SymbolTable.SymbolKind
 
-        switch type {
-        case .funcType:
-            kind = .funcKind
-        case .errType, .noneType:
-            kind = .noKind
-            SemanticError.handle(.internalError)
-        default:
-            kind = .constKind
+            switch type {
+            case .funcType:
+                kind = .funcKind
+            case .errType, .noneType:
+                kind = .noKind
+                SemanticError.handle(.internalError)
+            default:
+                kind = .constKind
+            }
+            symbolTable[name] = SymbolTable.Entry(
+                    name: name,
+                    dataType: type,
+                    kind: kind,
+                    address: symbolTable === globalTable ?
+                            globalAllocator.getNext(type) : localAllocators.top!.getNext(type))
         }
-        symbolTable[name] = SymbolTable.Entry(
-                name: name,
-                dataType: type,
-                kind: kind,
-                address: symbolTable === globalTable ?
-                        globalAllocator.getNext(type) : localAllocators.top!.getNext(type))
     }
 
     // Creates a new symbol table and sets its parent to the previous one.
@@ -121,6 +125,8 @@ public class CodeGenerator {
                 startAddress: MemoryPointer.localStartAddress,
                 addressesPerType: MemoryPointer.addressesPerType
         ))
+        tempCount = 0
+        constCount = 0
     }
 
     // Returns to the parent symbol table if there is one, deleting the current one.
@@ -163,8 +169,7 @@ public class CodeGenerator {
         let lambdaStart = jumpStack.pop()!
         let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart, type: type)
         // Store lambda literal in dictionary. Names won't collide.
-        // TODO: Check this assertion.
-        literalDict["lambda\(lambdaStart)"] = valueEntry
+        literalDict["lambda\(lambdaAddress)"] = valueEntry
         operandStack.push(lambdaAddress)
         typeStack.push(type)
     }

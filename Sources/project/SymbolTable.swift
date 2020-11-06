@@ -28,7 +28,7 @@ public class SymbolTable: CustomDebugStringConvertible {
             self.address = address
         }
 
-        public var debugDescription: String { return "n: \(name), t: \(dataType), k: \(kind)" }
+        public var debugDescription: String { return "n: \(name), t: \(dataType), a: \(address)" }
     }
 
     // Private
