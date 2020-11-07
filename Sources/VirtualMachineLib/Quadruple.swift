@@ -30,6 +30,7 @@ public enum VMOperator: String {
     case ret
     case importCon
     case read
+    case print
     case placeholder
 }
 

@@ -365,6 +365,14 @@ public class CodeGenerator {
         operandStack.push(readAddress)
         typeStack.push(type)
     }
+
+    public func generatePrint() {
+        // Stacks are guaranteed to contain values.
+        let printAddress = operandStack.pop()!
+        typeStack.pop()!
+        instructionQueue.push(Quadruple(instruction: .print, first: nil, second: nil, res: printAddress))
+    }
+
     public func printQueue() {
         for i in 0 ..< instructionQueue.count {
             print("\(i). \(String(describing: instructionQueue[i]))")

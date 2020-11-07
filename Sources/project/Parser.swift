@@ -701,11 +701,14 @@ public class Parser {
         Expect(32 /* "]" */)
     }
 
+    // MARK: Edited method.
+    // Generates quadruples for print statement.
     func Print() {
         Expect(_PRINT)
         Expect(26 /* "(" */)
         SimpleExp()
         Expect(27 /* ")" */)
+        codeGenerator.generatePrint()
     }
 
 
