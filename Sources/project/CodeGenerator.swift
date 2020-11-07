@@ -350,7 +350,6 @@ public class CodeGenerator {
 
     // Generates quadruples necessary for function ends.
     public func generateFuncEnd(line: Int, col: Int) {
-        // TODO: Finish implementing method.
         // Stacks are guaranteed to contain values.
         let returnVal = operandStack.pop()!
         let returnType = typeStack.pop()!
@@ -359,6 +358,13 @@ public class CodeGenerator {
         instructionQueue.fillResult(at: funcStartIndex, result: instructionQueue.nextInstruction)
     }
 
+    // Generates quadruples necessary for read.
+    public func generateRead(type: DataType, line: Int, col: Int) {
+        let readAddress = tempAllocators.top!.getNext(type)
+        instructionQueue.push(Quadruple(instruction: .read, first: nil, second: nil, res: readAddress))
+        operandStack.push(readAddress)
+        typeStack.push(type)
+    }
     public func printQueue() {
         for i in 0 ..< instructionQueue.count {
             print("\(i). \(String(describing: instructionQueue[i]))")

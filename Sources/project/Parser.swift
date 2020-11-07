@@ -452,15 +452,16 @@ public class Parser {
         codeGenerator.pushOperator(.assgOp)
         if StartOf(1) {
             Expression()
-            codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
         } else if la.kind == _READ {
             // TODO: Only allow read in main function.
             Get()
             Expect(26 /* "(" */)
             Expect(27 /* ")" */)
+            codeGenerator.generateRead(type: type, line: t.line, col: t.col)
         } else {
             SynErr(54)
         }
+        codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
     }
 
     // MARK: Edited method.

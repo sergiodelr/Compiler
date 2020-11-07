@@ -29,6 +29,7 @@ public enum VMOperator: String {
     case goTo
     case ret
     case importCon
+    case read
     case placeholder
 }
 
