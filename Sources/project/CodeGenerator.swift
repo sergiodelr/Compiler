@@ -23,6 +23,16 @@ public class CodeGenerator {
     private var localAllocators: Stack<VirtualAddressAllocator>
     // Maps from a string with a literal value to its literal value entry.
     private var literalDict: [String: ValueEntry]
+    // Stack for operators in expressions
+    private var operatorStack: Stack<LangOperator>
+    // Stack for operands in expressions. Contains the operands' virtual address.
+    private var operandStack: Stack<Int>
+    // Stack for operand types.
+    private var typeStack: Stack<DataType>
+    // Jump stack for conditional statements.
+    private var jumpStack: Stack<Int>
+    // Function stack.
+    private var funcStack: Stack<FuncValueEntry>
 
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
     private func find(name: String) -> SymbolTable.Entry? {
@@ -54,21 +64,13 @@ public class CodeGenerator {
     }
 
     // Public
-    // Stack for operators in expressions
-    public var operatorStack: Stack<LangOperator>
-    // Stack for operands in expressions. Contains the operands' virtual address.
-    public var operandStack: Stack<Int>
-    // Stack for operand types.
-    public var typeStack: Stack<DataType>
-    // Jump stack for conditional statements.
-    public var jumpStack: Stack<Int>
-
     public init() {
         instructionQueue = InstructionQueue()
         operatorStack = Stack<LangOperator>()
         operandStack = Stack<Int>()
         typeStack = Stack<DataType>()
         jumpStack = Stack<Int>()
+        funcStack = Stack<FuncValueEntry>()
         globalTable = SymbolTable()
         symbolTable = globalTable
         literalDict = [String: ValueEntry]()
@@ -164,13 +166,11 @@ public class CodeGenerator {
     }
 
     // Pushes a lambda, given its address and type, to the operand stack and its type to the type stack.
-    public func pushLambda(address: Int, type: DataType) {
-        let lambdaStart = instructionQueue.nextInstruction
-        let valueEntry = FuncValueEntry(address: address, value: lambdaStart, type: type)
+    public func pushLambda(_ funcValueEntry: FuncValueEntry) {
         // Store lambda literal in dictionary. Names won't collide.
-        literalDict["lambda\(address)"] = valueEntry
-        operandStack.push(address)
-        typeStack.push(type)
+        literalDict["lambda\(funcValueEntry.address)"] = funcValueEntry
+        operandStack.push(funcValueEntry.address)
+        typeStack.push(.funcType(paramTypes: funcValueEntry.paramTypes, returnType: funcValueEntry.returnType))
     }
 
     // Pops an operand from the operand stack and its type from the type stack.
@@ -345,7 +345,9 @@ public class CodeGenerator {
         instructionQueue.push(Quadruple(instruction: .goTo, first: nil, second: nil, res: nil))
         jumpStack.push(instructionQueue.nextInstruction - 1)
 
-        pushLambda(address: lambdaAddress, type: type)
+        let lambdaStart = instructionQueue.nextInstruction
+        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart, type: type)
+        funcStack.push(valueEntry)
     }
 
     // Generates quadruples necessary for function ends.
@@ -356,6 +358,21 @@ public class CodeGenerator {
         let funcStartIndex = jumpStack.pop()!
         instructionQueue.push(Quadruple(instruction: .ret, first: nil, second: nil, res: returnVal))
         instructionQueue.fillResult(at: funcStartIndex, result: instructionQueue.nextInstruction)
+
+        // Finish filling lambda properties.
+        var funcValueEntry = funcStack.pop()!
+        funcValueEntry.tempCount[.intType] = tempAllocators.top!.maxIntCount
+        funcValueEntry.tempCount[.floatType] = tempAllocators.top!.maxFloatCount
+        funcValueEntry.tempCount[.boolType] = tempAllocators.top!.maxBoolCount
+        funcValueEntry.tempCount[.charType] = tempAllocators.top!.maxCharCount
+        funcValueEntry.tempCount[.funcType(paramTypes: [], returnType: .noneType)] = tempAllocators.top!.maxFuncCount
+
+        funcValueEntry.constCount[.intType] = localAllocators.top!.maxIntCount
+        funcValueEntry.constCount[.floatType] = localAllocators.top!.maxFloatCount
+        funcValueEntry.constCount[.boolType] = localAllocators.top!.maxBoolCount
+        funcValueEntry.constCount[.charType] = localAllocators.top!.maxCharCount
+        funcValueEntry.constCount[.funcType(paramTypes: [], returnType: .noneType)] = localAllocators.top!.maxFuncCount
+        pushLambda(funcValueEntry)
     }
 
     // Generates quadruples necessary for read.

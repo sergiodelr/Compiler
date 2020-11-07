@@ -30,8 +30,8 @@ public struct FuncValueEntry: ValueEntry {
     public let returnType: DataType
     // TODO: update counts.
     public var paramCount: Int { return paramTypes.count }
-    public var tempCount: Int = 0
-    public var constCount: Int = 0
+    public var tempCount = [DataType: Int]()
+    public var constCount = [DataType: Int]()
     public var context = [ValueEntry]()
 
     public init(address: Int, value: Int, type: DataType) {
