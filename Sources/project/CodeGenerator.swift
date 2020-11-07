@@ -206,6 +206,9 @@ public class CodeGenerator {
 
         guard resultType != .errType else {
             // TODO: send correct types to error.
+            print(leftOperand)
+            print(rightOperand)
+            print(topOperator)
             SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
             return
         }
@@ -356,11 +359,18 @@ public class CodeGenerator {
         let returnVal = operandStack.pop()!
         let returnType = typeStack.pop()!
         let funcStartIndex = jumpStack.pop()!
+        var funcValueEntry = funcStack.pop()!
+        guard returnType == funcValueEntry.returnType else {
+            SemanticError.handle(
+                    .typeMismatch(expected: funcValueEntry.returnType, received: returnType),
+                    line: line,
+                    col: col)
+            return // Dummy return.
+        }
         instructionQueue.push(Quadruple(instruction: .ret, first: nil, second: nil, res: returnVal))
         instructionQueue.fillResult(at: funcStartIndex, result: instructionQueue.nextInstruction)
 
         // Finish filling lambda properties.
-        var funcValueEntry = funcStack.pop()!
         funcValueEntry.tempCount[.intType] = tempAllocators.top!.maxIntCount
         funcValueEntry.tempCount[.floatType] = tempAllocators.top!.maxFloatCount
         funcValueEntry.tempCount[.boolType] = tempAllocators.top!.maxBoolCount
@@ -375,6 +385,72 @@ public class CodeGenerator {
         pushLambda(funcValueEntry)
     }
 
+    // Generates quadruples necessary for function calls. If operand on top of the stack is not a function, an error is
+    // thrown.
+    public func generateFuncCallStart(line: Int, col: Int) {
+        // Check that operand is a function.
+        // Stacks are guaranteed to contain values.
+        let funcOp = operandStack.top!
+        let funcType = typeStack.top!
+        guard case let DataType.funcType(paramTypes, returnType) = funcType else {
+            SemanticError.handle(.invalidFuncCall, line: line, col: col)
+            return // Dummy return.
+        }
+        instructionQueue.push(Quadruple(instruction: .alloc, first: nil, second: nil, res: funcOp))
+        print("fcs")
+    }
+
+    // Generates quadruples necessary for sending arguments to function calls. If argument count or type does not match
+    // an error is thrown.
+    public func generateArgument(atPosition pos: Int, line: Int, col: Int) {
+        // Stacks are guaranteed to contain values.
+        let arg = operandStack.pop()!
+        let argType = typeStack.pop()!
+        let funcType = typeStack.top!
+        // Guard case will always match.
+        guard case DataType.funcType(let paramTypes, _) = funcType else {
+            SemanticError.handle(.internalError)
+            return // Dummy return.
+        }
+        // Check that arg position is not greater than argument count.
+        guard pos <= paramTypes.count else {
+            SemanticError.handle(.invalidArgCount(expected: paramTypes.count, received: pos), line: line, col: col)
+            return // Dummy return.
+        }
+        // Check that types match.
+        // TODO: Allow casting between float and int.
+        guard paramTypes[pos] == argType else {
+            SemanticError.handle(.typeMismatch(expected: paramTypes[pos], received: argType), line: line, col: col)
+            return // Dummy return.
+        }
+        instructionQueue.push(Quadruple(instruction: .arg, first: arg, second: nil, res: pos))
+        print("arg")
+    }
+
+    // Generate quadruples necessary to end a func call. If argument count does not match, an error is thrown.
+    public func generateFuncCallEnd(argCount: Int, line: Int, col: Int) {
+        // Stacks are guaranteed to contain values.
+        let funcOp = operandStack.pop()!
+        let funcType = typeStack.pop()!
+        // Guard case will always match.
+        guard case let DataType.funcType(paramTypes, returnType) = funcType else {
+            SemanticError.handle(.internalError)
+            return // Dummy return.
+        }
+        // Check that argCount is equal to expected count.
+        guard argCount == paramTypes.count else {
+            SemanticError.handle(.invalidArgCount(expected: paramTypes.count, received: argCount), line: line, col: col)
+            return // Dummy return.
+        }
+        instructionQueue.push(Quadruple(instruction: .call, first: nil, second: nil, res: funcOp))
+
+        // Receive return value and push it to stack.
+        let funcResult = tempAllocators.top!.getNext(returnType)
+        instructionQueue.push(Quadruple(instruction: .receiveRes, first: nil, second: nil, res: funcResult))
+        operandStack.push(funcResult)
+        typeStack.push(returnType)
+    }
+
     // Generates quadruples necessary for read.
     public func generateRead(type: DataType, line: Int, col: Int) {
         let readAddress = tempAllocators.top!.getNext(type)
@@ -383,6 +459,7 @@ public class CodeGenerator {
         typeStack.push(type)
     }
 
+    // Generates quadruples necessary for print.
     public func generatePrint() {
         // Stacks are guaranteed to contain values.
         let printAddress = operandStack.pop()!

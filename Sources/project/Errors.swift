@@ -12,6 +12,8 @@ public enum SemanticError: Error {
     case internalError
     case symbolAmbiguity(symbol: String)
     case genTypeNotSupported
+    case invalidFuncCall
+    case invalidArgCount(expected: Int, received: Int)
 
     func description() -> String {
         switch self {
@@ -27,6 +29,10 @@ public enum SemanticError: Error {
             return "Ambiguous symbol. Symbol: \(symbol)"
         case .genTypeNotSupported:
             return "Generic type is not yet supported."
+        case .invalidFuncCall:
+            return "Invalid function call."
+        case let .invalidArgCount(expected, received):
+            return "Invalid argument count. Expected: \(expected). Received: \(received)"
         }
     }
 

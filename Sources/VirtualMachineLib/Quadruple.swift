@@ -21,16 +21,23 @@ public enum VMOperator: String {
     case greaterThan
     case lessEqual
     case greaterEqual
-    case assign
     case cons
     case append
+    case assign
+
     case goToFalse
     case goToTrue
     case goTo
+
     case ret
-    case importCon
     case read
     case print
+
+    case importCon
+    case alloc
+    case arg
+    case call
+    case receiveRes
     case placeholder
 }
 
