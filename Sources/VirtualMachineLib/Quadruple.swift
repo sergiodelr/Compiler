@@ -24,6 +24,8 @@ public enum VMOperator: String {
     case cons
     case append
     case assign
+    case car
+    case cdr
 
     case goToFalse
     case goToTrue
