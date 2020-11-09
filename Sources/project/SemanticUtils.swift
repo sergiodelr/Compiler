@@ -31,20 +31,22 @@ public enum LangOperator: String {
             return 0
         case .notOp, .negOp, .posOp:
             return 1
-        case .appendOp, .consOp:
+        case .consOp:
             return 2
-        case .multOp, .divOp:
+        case .appendOp:
             return 3
-        case .plusOp, .minusOp:
+        case .multOp, .divOp:
             return 4
-        case .eqOp, .notEqOp, .lThanOp, .gThanOp, .lEqOp, .gEqOp:
+        case .plusOp, .minusOp:
             return 5
-        case .andOp:
+        case .eqOp, .notEqOp, .lThanOp, .gThanOp, .lEqOp, .gEqOp:
             return 6
-        case .orOp:
+        case .andOp:
             return 7
-        case .assgOp:
+        case .orOp:
             return 8
+        case .assgOp:
+            return 9
         }
     }
 }
@@ -217,6 +219,8 @@ public enum ExpressionTypeTable {
         case .consOp:
             if case let DataType.listType(innerType) = type2, type1 == innerType {
                 return .listType(innerType: type1)
+            } else if case let DataType.listType(innerType) = type2, innerType == .noneType {
+                return .listType(innerType: type1)
             }
         case .appendOp:
             if case let DataType.listType(innerType1) = type1,
@@ -238,6 +242,11 @@ public enum ExpressionTypeTable {
             return table[op]?[type1]?[type2] ?? .errType
         }
         return .errType
+    }
+
+    // Checks whether two data types are compatible for casting.
+    public static func canCast(from type1: DataType, to type2: DataType) -> Bool {
+        return getDataType(op: .assgOp, type1: type1, type2: type2) != .errType
     }
 }
 

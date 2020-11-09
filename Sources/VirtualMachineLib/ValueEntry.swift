@@ -60,16 +60,10 @@ public struct ListValueEntry: ValueEntry {
     }
     // The next value's address.
     public var next: Int? = nil
-    public let innerType: DataType
+    public var innerType = DataType.noneType
 
-    public init(address: Int, value: Any, type: DataType) {
+    public init(address: Int, value: Any?) {
         self.address = address
         self.value = value
-        // Condition will always be true.
-        if case let DataType.listType(innerType) = type {
-            self.innerType = innerType
-        } else {
-            self.innerType = .errType
-        }
     }
 }

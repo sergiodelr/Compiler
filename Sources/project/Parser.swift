@@ -154,7 +154,6 @@ public class Parser {
         Program()
     }
 
-    // MARK: Edited method.
     func Program() {
         while la.kind == _LET {
             Definition()
@@ -162,7 +161,6 @@ public class Parser {
         Main()
     }
 
-    // MARK: Edited method.
     // Adds definition to Symbol Table or marks an error.
     func Definition() {
         Expect(_LET)
@@ -178,7 +176,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     // Creates a symbol table for its local constants.
     func Main() {
         Expect(_MAIN)
@@ -221,7 +218,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     // Sets the symbolEntry's type and kind. It calls FuncBody(), which will create a symbol table for each pattern
     // matching case.
     func FuncDef(_ name: String) {
@@ -239,7 +235,6 @@ public class Parser {
         Expect(29 /* "}" */)
     }
 
-    // MARK: Edited method.
     // Returns the parsed data type.
     @discardableResult
     func Type() -> DataType {
@@ -282,7 +277,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     // Returns an array with the parameter types.
     func ParamList() -> [DataType] {
         var res = [DataType]()
@@ -332,7 +326,6 @@ public class Parser {
         return dataTypeFromSimpleType(t.kind, genericId: genId)
     }
 
-    // MARK: Edited method.
     // Receives the function data type. Used to add local constants to symbol table.
     func Case(_ funcType: DataType) {
         Expect(_FOR)
@@ -350,7 +343,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     // Receives the parameter types. Matches each pattern with its type.
     func PatternList(_ paramTypes: [DataType]) {
         // TODO: finish pattern matching.
@@ -372,7 +364,6 @@ public class Parser {
         Expect(_IN)
     }
 
-    // MARK: Edited method.
     // Receives a data type and matches the pattern. If pattern is an id, it adds it to the symbol table.
     func Pattern(_ patternType: DataType) {
         if la.kind == 42 /* "-" */ || la.kind == _INTCONS || la.kind == _FLOATCONS {
@@ -464,7 +455,6 @@ public class Parser {
         codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
     }
 
-    // MARK: Edited method.
     // Creates a Symbol Entry for each parameter in the lambda and stores it in the lambda's symbol table or marks
     // error.
     func LambdaExp() {
@@ -506,7 +496,6 @@ public class Parser {
         codeGenerator.deleteSymbolTable()
     }
 
-    // MARK: Edited method
     func SimpleExp() {
         if la.kind == _IFT {
             IfExp()
@@ -517,7 +506,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     func IfExp() {
         Expect(_IFT)
         Exp()
@@ -541,7 +529,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     func AndExp() {
         LogicalExp()
         codeGenerator.generateTwoOperandsExpQuadruple(op: .andOp, line: t.line, col: t.col)
@@ -553,7 +540,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     func LogicalExp() {
         MathExp()
         codeGenerator.generateTwoOperandsExpQuadruple(op: .eqOp, line: t.line, col: t.col)
@@ -580,7 +566,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     func MathExp() {
         Term()
         codeGenerator.generateTwoOperandsExpQuadruple(op: .plusOp, line: t.line, col: t.col)
@@ -596,7 +581,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method.
     func Term() {
         ListExp()
         codeGenerator.generateTwoOperandsExpQuadruple(op: .multOp, line: t.line, col: t.col)
@@ -613,22 +597,28 @@ public class Parser {
     }
 
     func ListExp() {
-        // TODO: Make cons right associative.
-        Factor()
-        codeGenerator.generateTwoOperandsExpQuadruple(op: .consOp, line: t.line, col: t.col)
-        while la.kind == 24 /* ":" */ || la.kind == 45 /* "++" */ {
-            if la.kind == 24 /* ":" */ {
-                Get()
-            } else {
-                Get()
-            }
+        ConsExp()
+        codeGenerator.generateTwoOperandsExpQuadruple(op: .appendOp, line: t.line, col: t.col)
+        while la.kind == 45 /* "++" */ {
+            Get()
+
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
-            Factor()
-            codeGenerator.generateTwoOperandsExpQuadruple(op: .consOp, line: t.line, col: t.col)
+            ConsExp()
+            codeGenerator.generateTwoOperandsExpQuadruple(op: .appendOp, line: t.line, col: t.col)
         }
     }
 
-    // MARK: Edited method.
+    func ConsExp() {
+        Factor()
+        while la.kind == 24 /* ":" */ {
+            Get()
+
+            codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
+            Factor()
+        }
+        codeGenerator.generateTwoOperandsExpQuadrupleRight(op: .consOp, line: t.line, col: t.col)
+    }
+
     func Factor() {
         if la.kind == 41 /* "+" */ || la.kind == 42 /* "-" */ || la.kind == 46 /* "!" */ {
             if la.kind == 41 /* "+" */ {
@@ -699,16 +689,22 @@ public class Parser {
     func List() {
         Expect(31 /* "[" */)
         if StartOf(1) {
+            codeGenerator.pushOperator(.placeholderOp)
             Expression()
+            codeGenerator.popOperator()
+            codeGenerator.pushOperator(.consOp)
             while la.kind == 30 /* "," */ {
                 Get()
+                codeGenerator.pushOperator(.placeholderOp)
                 Expression()
+                codeGenerator.popOperator()
+                codeGenerator.pushOperator(.consOp)
             }
         }
+        codeGenerator.pushList()
         Expect(32 /* "]" */)
     }
 
-    // MARK: Edited method.
     // Generates quadruples for print statement.
     func Print() {
         Expect(_PRINT)

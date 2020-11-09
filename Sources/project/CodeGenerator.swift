@@ -165,12 +165,24 @@ public class CodeGenerator {
         typeStack.push(type)
     }
 
-    // Pushes a lambda, given its address and type, to the operand stack and its type to the type stack.
+    // Pushes a lambda, given its value entry, to the operand stack and its type to the type stack.
     public func pushLambda(_ funcValueEntry: FuncValueEntry) {
         // Store lambda literal in dictionary. Names won't collide.
         literalDict["lambda\(funcValueEntry.address)"] = funcValueEntry
         operandStack.push(funcValueEntry.address)
         typeStack.push(.funcType(paramTypes: funcValueEntry.paramTypes, returnType: funcValueEntry.returnType))
+    }
+
+    // Pushes a list
+    public func pushList() {
+        if let listValueEntry = literalDict["[]"] {
+            operandStack.push(listValueEntry.address)
+        } else {
+            let listCellAddress = literalAllocator.getNext(.listType(innerType: .noneType))
+            literalDict["[]"] = ListValueEntry(address: listCellAddress, value: nil)
+            operandStack.push(listCellAddress)
+        }
+        typeStack.push(.listType(innerType: .noneType))
     }
 
     // Pops an operand from the operand stack and its type from the type stack.
@@ -232,6 +244,40 @@ public class CodeGenerator {
         }
         tempAllocators.top!.recycle(leftOperand)
         tempAllocators.top!.recycle(rightOperand)
+    }
+
+    // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
+    // operator's precedence for right associative operators. If not, it does nothing. It must be an operator with two
+    //  operands. If the operands' types do not match, an error is thrown.
+    public func generateTwoOperandsExpQuadrupleRight(op: LangOperator, line: Int, col: Int) {
+        while let top = operatorStack.top, op.precedence() == top.precedence() {
+            // It is guaranteed that stacks contain elements.
+            let rightOperand = operandStack.pop()!
+            let rightType = typeStack.pop()!
+            let leftOperand = operandStack.pop()!
+            let leftType = typeStack.pop()!
+            let topOperator = operatorStack.pop()!
+            let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
+
+            guard resultType != .errType else {
+                // TODO: send correct types to error.
+                SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
+                return
+            }
+
+            let result = tempAllocators.top!.getNext(resultType)
+            instructionQueue.push(
+                    Quadruple(
+                            instruction: langOperatorToVMOperator(op: topOperator),
+                            first: leftOperand,
+                            second: rightOperand,
+                            res: result))
+            operandStack.push(result)
+            typeStack.push(resultType)
+
+            tempAllocators.top!.recycle(leftOperand)
+            tempAllocators.top!.recycle(rightOperand)
+        }
     }
 
     // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
@@ -376,12 +422,14 @@ public class CodeGenerator {
         funcValueEntry.tempCount[.boolType] = tempAllocators.top!.maxBoolCount
         funcValueEntry.tempCount[.charType] = tempAllocators.top!.maxCharCount
         funcValueEntry.tempCount[.funcType(paramTypes: [], returnType: .noneType)] = tempAllocators.top!.maxFuncCount
+        funcValueEntry.tempCount[.listType(innerType: .noneType)] = tempAllocators.top!.maxListCount
 
         funcValueEntry.constCount[.intType] = localAllocators.top!.maxIntCount
         funcValueEntry.constCount[.floatType] = localAllocators.top!.maxFloatCount
         funcValueEntry.constCount[.boolType] = localAllocators.top!.maxBoolCount
         funcValueEntry.constCount[.charType] = localAllocators.top!.maxCharCount
         funcValueEntry.constCount[.funcType(paramTypes: [], returnType: .noneType)] = localAllocators.top!.maxFuncCount
+        funcValueEntry.constCount[.listType(innerType: .noneType)] = localAllocators.top!.maxListCount
         pushLambda(funcValueEntry)
     }
 

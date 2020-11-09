@@ -10,13 +10,13 @@ public enum MemoryPointer {
     public static let globalStartAddress = 0
 
     // Local
-    public static let localStartAddress = 1000
+    public static let localStartAddress = 3000
 
     // Temporary
-    public static let tempStartAddress = 2000
+    public static let tempStartAddress = 6000
 
     // Literal
-    public static let literalStartAddress = 3000
+    public static let literalStartAddress = 9000
 
-    public static let addressesPerType = 200
+    public static let addressesPerType = 500
 }

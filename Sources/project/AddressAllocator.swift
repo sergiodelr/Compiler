@@ -16,6 +16,7 @@ protocol AddressAllocator {
     var maxCharCount: Int { get }
     var maxBoolCount: Int { get }
     var maxFuncCount: Int { get }
+    var maxListCount: Int { get }
 }
 
 // TODO: Refactor this as a subclass of VirtualAddressAllocator
@@ -34,6 +35,7 @@ public class TempAddressAllocator: AddressAllocator {
     private let charStartAddress: Int
     private let boolStartAddress: Int
     private let functionStartAddress: Int
+    private let listStartAddress: Int
     // Address counts.
     // If the new count is greater than the current max count, max count takes its value.
     private var intCount = 0 {
@@ -51,11 +53,31 @@ public class TempAddressAllocator: AddressAllocator {
     private var funcCount = 0 {
         willSet { if newValue > maxFuncCount { maxFuncCount = newValue } }
     }
+    private var listCount = 0 {
+        willSet { if newValue > maxFuncCount { maxListCount = newValue } }
+    }
 
     // Gets next function address.
     private func getNextFunc() -> Int {
         let res: Int
         let type = DataType.funcType(paramTypes: [], returnType: .noneType)
+        // availableAddresses is guaranteed to contain key.
+        if availableAddresses[type]!.isEmpty {
+            // return current counter and increase it.
+            res = nextCounter[type]!
+            nextCounter[type] = res + 1
+            addToCount(type: type, amount: 1)
+        } else {
+            // return an address from availableAddresses.
+            res = availableAddresses[type]!.removeFirst()
+        }
+        return res
+    }
+
+    // Gets next list address.
+    private func getNextList() -> Int {
+        let res: Int
+        let type = DataType.listType(innerType: .noneType)
         // availableAddresses is guaranteed to contain key.
         if availableAddresses[type]!.isEmpty {
             // return current counter and increase it.
@@ -82,6 +104,8 @@ public class TempAddressAllocator: AddressAllocator {
             boolCount += amount
         case .funcType:
             funcCount += amount
+        case .listType:
+            listCount += amount
         default:
             return
         }
@@ -93,6 +117,7 @@ public class TempAddressAllocator: AddressAllocator {
     public private(set) var maxCharCount = 0
     public private(set) var maxBoolCount = 0
     public private(set) var maxFuncCount = 0
+    public private(set) var maxListCount = 0
 
     required public init(startAddress: Int, addressesPerType: Int) {
         intStartAddress = startAddress
@@ -100,25 +125,31 @@ public class TempAddressAllocator: AddressAllocator {
         charStartAddress = startAddress + 2 * addressesPerType
         boolStartAddress = startAddress + 3 * addressesPerType
         functionStartAddress = startAddress + 4 * addressesPerType
-        upperLimit = startAddress + 5 * addressesPerType
+        listStartAddress = startAddress + 5 * addressesPerType
+        upperLimit = startAddress + 6 * addressesPerType
 
         nextCounter[.intType] = intStartAddress
         nextCounter[.floatType] = floatStartAddress
         nextCounter[.charType] = charStartAddress
         nextCounter[.boolType] = boolStartAddress
         nextCounter[.funcType(paramTypes: [], returnType: .noneType)] = functionStartAddress
+        nextCounter[.listType(innerType: .noneType)] = listStartAddress
 
         availableAddresses[.intType] = Set<Int>()
         availableAddresses[.floatType] = Set<Int>()
         availableAddresses[.charType] = Set<Int>()
         availableAddresses[.boolType] = Set<Int>()
         availableAddresses[.funcType(paramTypes: [], returnType: .noneType)] = Set<Int>()
+        availableAddresses[.listType(innerType: .noneType)] = Set<Int>()
     }
 
     // Gets the next address from the specified type.
     public func getNext(_ type: DataType) -> Int {
         if case DataType.funcType = type {
             return getNextFunc()
+        }
+        if case DataType.listType = type {
+            return getNextList()
         }
 
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
@@ -152,8 +183,10 @@ public class TempAddressAllocator: AddressAllocator {
             type = .charType
         case boolStartAddress ..< functionStartAddress:
             type = .boolType
-        case functionStartAddress ..< upperLimit:
+        case functionStartAddress ..< listStartAddress:
             type = .funcType(paramTypes: [], returnType: .noneType)
+        case listStartAddress ..< upperLimit:
+            type = .listType(innerType: .noneType)
         default:
             // If it is not a temp address, return.
             return
@@ -184,10 +217,21 @@ public class VirtualAddressAllocator: AddressAllocator {
     private let charStartAddress: Int
     private let boolStartAddress: Int
     private let functionStartAddress: Int
+    private let listStartAddress: Int
 
+    // TODO: Refactor this and method below as a single one.
     // Gets next function address.
     private func getNextFunc() -> Int {
         let type = DataType.funcType(paramTypes: [], returnType: .noneType)
+        // Type is guaranteed to be a key.
+        let res = nextCounter[type]!
+        nextCounter[type] = res + 1
+        return res
+    }
+
+    // Gets next list address.
+    private func getNextList() -> Int {
+        let type = DataType.listType(innerType: .noneType)
         // Type is guaranteed to be a key.
         let res = nextCounter[type]!
         nextCounter[type] = res + 1
@@ -203,6 +247,7 @@ public class VirtualAddressAllocator: AddressAllocator {
     public var maxFuncCount: Int {
         return nextCounter[.funcType(paramTypes: [], returnType: .noneType)]! % addressesPerType
     }
+    public var maxListCount: Int { return nextCounter[.listType(innerType: .noneType)]! % addressesPerType }
 
     required init(startAddress: Int, addressesPerType: Int) {
         self.addressesPerType = addressesPerType
@@ -211,18 +256,23 @@ public class VirtualAddressAllocator: AddressAllocator {
         charStartAddress = startAddress + 2 * addressesPerType
         boolStartAddress = startAddress + 3 * addressesPerType
         functionStartAddress = startAddress + 4 * addressesPerType
-        upperLimit = startAddress + 5 * addressesPerType
+        listStartAddress = startAddress + 5 * addressesPerType
+        upperLimit = startAddress + 6 * addressesPerType
 
         nextCounter[.intType] = intStartAddress
         nextCounter[.floatType] = floatStartAddress
         nextCounter[.charType] = charStartAddress
         nextCounter[.boolType] = boolStartAddress
         nextCounter[.funcType(paramTypes: [], returnType: .noneType)] = functionStartAddress
+        nextCounter[.listType(innerType: .noneType)] = listStartAddress
     }
 
     func getNext(_ type: DataType) -> Int {
         if case DataType.funcType = type {
             return getNextFunc()
+        }
+        if case DataType.listType = type {
+            return getNextList()
         }
 
         guard [DataType.intType, DataType.floatType, DataType.charType, DataType.boolType].contains(type) else {
