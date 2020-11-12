@@ -7,4 +7,5 @@ import Foundation
 enum SavingError: Error {
     case invalidEncodingValue
     case couldNotSave
+    case unsupportedTypes
 }

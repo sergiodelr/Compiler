@@ -7,12 +7,14 @@ import Foundation
 // Serializes the instruction queue and other structures necessary to run a program. Encodes and decodes them, as
 // well as writing and reading them from files.
 class ProgramContainer: Codable {
-        let instructionQueue: InstructionQueue
-    let intLiterals: [Int: Int]
-    let floatLiterals: [Int: Float]
-    let charLiterals: [Int: String]
-    let boolLiterals: [Int: Bool]
-    let funcLiterals: [Int: FuncValue]
+    let instructionQueue: InstructionQueue
+
+    var intLiterals: [Int: Int]
+    var floatLiterals: [Int: Float]
+    var charLiterals: [Int: String]
+    var boolLiterals: [Int: Bool]
+    var funcLiterals: [Int: FuncValue]
+    var listLiterals: [Int: ListValue]
 
     class func create(fromFileAtPath path: String) -> ProgramContainer? {
         let url = URL(fileURLWithPath: path)
@@ -23,8 +25,34 @@ class ProgramContainer: Codable {
         return decodedData
     }
 
-    init(instructionQueue: InstructionQueue, valueEntries: [ValueEntry]) {
+    init(instructionQueue: InstructionQueue, valueEntries: [ValueEntry]) throws {
         self.instructionQueue = instructionQueue
+
+        intLiterals = [Int: Int]()
+        floatLiterals = [Int: Float]()
+        charLiterals = [Int: String]()
+        boolLiterals = [Int: Bool]()
+        funcLiterals = [Int: FuncValue]()
+        listLiterals = [Int: ListValue]()
+
+        for entry in valueEntries {
+            switch entry.type {
+            case .intType:
+                intLiterals[entry.address] = entry.value as! Int
+            case .floatType:
+                floatLiterals[entry.address] = entry.value as! Float
+            case .charType:
+                charLiterals[entry.address] = entry.value as! String
+            case .boolType:
+                boolLiterals[entry.address] = entry.value as! Bool
+            case .listType:
+                listLiterals[entry.address] = ListValue(fromValueEntry: entry as! ListValueEntry)
+            case .funcType:
+                funcLiterals[entry.address] = FuncValue(fromValueEntry: entry as! FuncValueEntry)
+            default:
+                throw SavingError.unsupportedTypes
+            }
+        }
     }
 
     // Saves itself to the specified path.

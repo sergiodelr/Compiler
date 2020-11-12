@@ -308,7 +308,7 @@ public class Parser {
     // MARK: Edited method
     // Returns a simple data type.
     func SimpleType() -> DataType {
-        var genId: Character? = nil
+        var genId: String? = nil
         if la.kind == _INT {
             Get()
         } else if la.kind == _FLOAT {
@@ -319,7 +319,7 @@ public class Parser {
             Get()
         } else if la.kind == _GENT {
             Get()
-            genId = t.val[0] // Generic IDs must have just one letter.
+            genId = t.val // Generic IDs must have just one letter.
         } else {
             SynErr(52)
         }
@@ -848,7 +848,7 @@ public class Errors {
 // Utility functions
 extension Parser {
     // Convenience function to convert simple type constants to DataTypes.
-    func dataTypeFromSimpleType(_ simpleT: Int, genericId: Character? = nil) -> DataType {
+    func dataTypeFromSimpleType(_ simpleT: Int, genericId: String? = nil) -> DataType {
         switch simpleT {
         case _INT:
             return .intType
