@@ -3,3 +3,7 @@
 //
 
 import Foundation
+import VirtualMachineLib
+
+let f = "/home/sergio/Documents/compis/out.txt"
+let programContainer = ProgramContainer.create(fromFileAtPath: f)

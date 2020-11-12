@@ -552,6 +552,16 @@ public class CodeGenerator {
         instructionQueue.push(Quadruple(instruction: .print, first: nil, second: nil, res: printAddress))
     }
 
+    public func save() {
+        do {
+            let programContainer =
+                    try ProgramContainer(instructionQueue: instructionQueue, valueEntries: Array(literalDict.values))
+            try programContainer.save(toFileAtPath: "/home/sergio/Documents/compis/out.txt")
+        } catch {
+            fatalError("Saving error.")
+        }
+    }
+
     public func printQueue() {
         for i in 0 ..< instructionQueue.count {
             print("\(i). \(String(describing: instructionQueue[i]))")

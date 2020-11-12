@@ -6,8 +6,8 @@ import Foundation
 
 // Serializes the instruction queue and other structures necessary to run a program. Encodes and decodes them, as
 // well as writing and reading them from files.
-class ProgramContainer: Codable {
-    let instructionQueue: InstructionQueue
+public class ProgramContainer: Codable {
+    public let instructionQueue: InstructionQueue
 
     var intLiterals: [Int: Int]
     var floatLiterals: [Int: Float]
@@ -16,7 +16,7 @@ class ProgramContainer: Codable {
     var funcLiterals: [Int: FuncValue]
     var listLiterals: [Int: ListValue]
 
-    class func create(fromFileAtPath path: String) -> ProgramContainer? {
+    public class func create(fromFileAtPath path: String) -> ProgramContainer? {
         let url = URL(fileURLWithPath: path)
         guard let data = try? Data(contentsOf: url) else {
             return nil
@@ -25,7 +25,7 @@ class ProgramContainer: Codable {
         return decodedData
     }
 
-    init(instructionQueue: InstructionQueue, valueEntries: [ValueEntry]) throws {
+    public init(instructionQueue: InstructionQueue, valueEntries: [ValueEntry]) throws {
         self.instructionQueue = instructionQueue
 
         intLiterals = [Int: Int]()
@@ -56,7 +56,7 @@ class ProgramContainer: Codable {
     }
 
     // Saves itself to the specified path.
-    func save(toFileAtPath path: String) throws {
+    public func save(toFileAtPath path: String) throws {
         let url = URL(fileURLWithPath: path)
         do {
             let data = try JSONEncoder().encode(self)

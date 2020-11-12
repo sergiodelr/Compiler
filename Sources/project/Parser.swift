@@ -721,7 +721,7 @@ public class Parser {
         Get()
         Comp()
         Expect(_EOF)
-
+        codeGenerator.save()
     }
 
     func set(_ x: Int, _ y: Int) -> Bool {
