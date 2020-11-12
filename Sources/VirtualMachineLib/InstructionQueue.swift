@@ -6,7 +6,7 @@ import Foundation
 
 // The instruction queue which contains quadruples in the order of execution. Contains convenience methods for its
 // construction.
-public class InstructionQueue {
+public class InstructionQueue: Codable {
     // Private
     // Internal instruction queue.
     private var queue: [Quadruple]
@@ -42,7 +42,6 @@ public class InstructionQueue {
 
     // Sets the result of the quadruple at the given index to the given result value.
     public func fillResult(at index: Int, result: Int) {
-        // TODO: Make sure result mutates.
         queue[index].res = result
     }
 }

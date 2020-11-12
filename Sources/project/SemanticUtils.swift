@@ -226,7 +226,7 @@ public enum ExpressionTypeTable {
             if case let DataType.listType(innerType1) = type1,
                case let DataType.listType(innerType2) = type2,
                innerType1 == innerType2 {
-                return .listType(innerType: type1)
+                return .listType(innerType: innerType1)
             }
         case .notOp:
             if case DataType.boolType = type1 {

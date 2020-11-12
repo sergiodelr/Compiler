@@ -4,12 +4,14 @@
 
 import Foundation
 
+// An entry of a literal value during runtime. Contains its address, value, and type.
 public protocol ValueEntry {
     var address: Int { get }
     var value: Any? { get }
     var type: DataType { get }
 }
 
+// ValueEntry for literals.
 public struct LiteralValueEntry: ValueEntry {
     public let address: Int
     public let value: Any?
@@ -22,6 +24,8 @@ public struct LiteralValueEntry: ValueEntry {
     }
 }
 
+// ValueEntry for functions. Contains extra properties to capture its context and to count its internal memory
+// addresses.
 public struct FuncValueEntry: ValueEntry {
     public let address: Int
     // The instruction pointer to the beginning of the function. Type Int
@@ -51,6 +55,8 @@ public struct FuncValueEntry: ValueEntry {
     }
 }
 
+// ValueEntry for lists. Represents a single list node and contains extra properties to store the internal type and the
+// next node's address.
 public struct ListValueEntry: ValueEntry {
     public let address: Int
     // An address of the contained value.

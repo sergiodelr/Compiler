@@ -598,13 +598,13 @@ public class Parser {
 
     func ListExp() {
         ConsExp()
-        codeGenerator.generateTwoOperandsExpQuadruple(op: .appendOp, line: t.line, col: t.col)
+        codeGenerator.generateListExpQuadruple(op: .appendOp, line: t.line, col: t.col)
         while la.kind == 45 /* "++" */ {
             Get()
 
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             ConsExp()
-            codeGenerator.generateTwoOperandsExpQuadruple(op: .appendOp, line: t.line, col: t.col)
+            codeGenerator.generateListExpQuadruple(op: .appendOp, line: t.line, col: t.col)
         }
     }
 
@@ -616,7 +616,7 @@ public class Parser {
             codeGenerator.pushOperator(LangOperator(rawValue: t.val)!)
             Factor()
         }
-        codeGenerator.generateTwoOperandsExpQuadrupleRight(op: .consOp, line: t.line, col: t.col)
+        codeGenerator.generateListExpRightQuadruple(op: .consOp, line: t.line, col: t.col)
     }
 
     func Factor() {

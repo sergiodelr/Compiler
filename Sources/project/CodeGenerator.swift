@@ -174,6 +174,7 @@ public class CodeGenerator {
     }
 
     // Pushes a list
+    // TODO: Manage memory.
     public func pushList() {
         if let listValueEntry = literalDict["[]"] {
             operandStack.push(listValueEntry.address)
@@ -246,10 +247,46 @@ public class CodeGenerator {
         tempAllocators.top!.recycle(rightOperand)
     }
 
-    // Generates a quadruple with the operator at the top of the stack and adds it to the queue if it matches the given
-    // operator's precedence for right associative operators. If not, it does nothing. It must be an operator with two
-    //  operands. If the operands' types do not match, an error is thrown.
-    public func generateTwoOperandsExpQuadrupleRight(op: LangOperator, line: Int, col: Int) {
+    // Generates a quadruple for a list expression with the operator at the top of the stack and adds it to the queue if
+    // it matches the given operator's precedence. If not, it does nothing. It must be an operator with two
+    // operands. If the operands' types do not match, an error is thrown.
+    public func generateListExpQuadruple(op: LangOperator, line: Int, col: Int) {
+        guard let top = operatorStack.top, op.precedence() == top.precedence() else {
+            return
+        }
+        // It is guaranteed that stacks contain elements.
+        let rightOperand = operandStack.pop()!
+        let rightType = typeStack.pop()!
+        let leftOperand = operandStack.pop()!
+        let leftType = typeStack.pop()!
+        let topOperator = operatorStack.pop()!
+        let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
+
+        guard resultType != .errType else {
+            // TODO: send correct types to error.
+            SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
+            return
+        }
+
+        let result = literalAllocator.getNext(resultType)
+        instructionQueue.push(
+                Quadruple(
+                        instruction: langOperatorToVMOperator(op: topOperator),
+                        first: leftOperand,
+                        second: rightOperand,
+                        res: result))
+        operandStack.push(result)
+        typeStack.push(resultType)
+
+        tempAllocators.top!.recycle(leftOperand)
+        tempAllocators.top!.recycle(rightOperand)
+    }
+
+    // Generates a quadruple for a list expression with the operator at the top of the stack and adds it to the queue if
+    // it matches the given operator's precedence for right associative operators.
+    // If not, it does nothing. It must be an operator with two
+    // operands. If the operands' types do not match, an error is thrown.
+    public func generateListExpRightQuadruple(op: LangOperator, line: Int, col: Int) {
         while let top = operatorStack.top, op.precedence() == top.precedence() {
             // It is guaranteed that stacks contain elements.
             let rightOperand = operandStack.pop()!
@@ -265,7 +302,7 @@ public class CodeGenerator {
                 return
             }
 
-            let result = tempAllocators.top!.getNext(resultType)
+            let result = literalAllocator.getNext(resultType)
             instructionQueue.push(
                     Quadruple(
                             instruction: langOperatorToVMOperator(op: topOperator),

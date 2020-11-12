@@ -18,6 +18,9 @@ let package = Package(
         .target(
             name: "VirtualMachineLib",
             dependencies: []),
+        .target(
+            name: "VirtualMachine",
+            dependencies: ["VirtualMachineLib"]),
         .testTarget(
             name: "projectTests",
             dependencies: ["project"]),
