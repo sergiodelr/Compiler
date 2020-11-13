@@ -18,7 +18,7 @@ public class Stack<Element>: Stackable {
     private var items: [Element]
 
     // Public
-    var isEmpty: Bool {
+    public var isEmpty: Bool {
         return items.isEmpty
     }
 
@@ -27,16 +27,16 @@ public class Stack<Element>: Stackable {
     }
 
     // Stackable
-    var top: Element? {
+    public var top: Element? {
         return items.last
     }
 
-    func push(_ item: Element) {
+    public func push(_ item: Element) {
         items.append(item)
     }
 
     @discardableResult
-    func pop() -> Element? {
+    public func pop() -> Element? {
         return items.popLast()
     }
 }

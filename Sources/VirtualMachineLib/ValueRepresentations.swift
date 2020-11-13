@@ -41,11 +41,11 @@ public struct FuncValue: Codable {
 }
 
 // The actual structure a list will be stored with and used during runtime.
-public struct ListValue: Codable {
+public struct ListValue: Codable, Equatable {
     // List node's value address.
-    let value: Int?
+    public let value: Int?
     // Next node.
-    var next: Int?
+    public var next: Int?
 
     public init(fromValueEntry entry: ListValueEntry) {
         value = entry.value as! Int?

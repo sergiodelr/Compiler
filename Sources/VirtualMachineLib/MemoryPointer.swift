@@ -18,5 +18,17 @@ public enum MemoryPointer {
     // Literal
     public static let literalStartAddress = 9000
 
+    // Addresses per type.
     public static let addressesPerType = 500
+
+    // Segment size.
+    public static let segmentSize = 3000
+
+    // Start addresses for each type. Actual start address is segmentStartAddress (global, etc) + typeStartAddress.
+    public static let intStartAddress = 0
+    public static let floatStartAddress = 500
+    public static let charStartAddress = 1000
+    public static let boolStartAddress = 1500
+    public static let funcStartAddress = 2000
+    public static let listStartAddress = 2500
 }

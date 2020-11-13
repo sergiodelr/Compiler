@@ -9,12 +9,12 @@ import Foundation
 public class ProgramContainer: Codable {
     public let instructionQueue: InstructionQueue
 
-    var intLiterals: [Int: Int]
-    var floatLiterals: [Int: Float]
-    var charLiterals: [Int: String]
-    var boolLiterals: [Int: Bool]
-    var funcLiterals: [Int: FuncValue]
-    var listLiterals: [Int: ListValue]
+    public var intLiterals: [Int: Int]
+    public var floatLiterals: [Int: Float]
+    public var charLiterals: [Int: String]
+    public var boolLiterals: [Int: Bool]
+    public var funcLiterals: [Int: FuncValue]
+    public var listLiterals: [Int: ListValue]
 
     public class func create(fromFileAtPath path: String) -> ProgramContainer? {
         let url = URL(fileURLWithPath: path)
