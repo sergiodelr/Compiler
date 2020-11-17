@@ -33,7 +33,8 @@ public class CodeGenerator {
     private var jumpStack: Stack<Int>
     // Function stack.
     private var funcStack: Stack<FuncValueEntry>
-
+    // Parameter addresses for current function.
+    private var parameters: [Int]
     // Searches for a symbol in the current table and in parent tables and returns the entry if found.
     private func find(name: String) -> SymbolTable.Entry? {
         var tempTable: SymbolTable? = symbolTable
@@ -74,6 +75,7 @@ public class CodeGenerator {
         globalTable = SymbolTable()
         symbolTable = globalTable
         literalDict = [String: ValueEntry]()
+        parameters = []
 
         tempAllocators = Stack<TempAddressAllocator>()
         tempAllocators.push(TempAddressAllocator(
@@ -90,7 +92,7 @@ public class CodeGenerator {
 
     // Receives a symbol name and type. Sets its kind and if it is of kind funcKind, creates a symbol table for its
     // variables. If the name already exists in the current table, a fatal error is thrown.
-    public func newSymbol(name: String, type: DataType, line: Int, col: Int) {
+    public func newSymbol(name: String, type: DataType, line: Int, col: Int, parameter: Bool = false) {
         guard !symbolTable.find(name) else {
             SemanticError.handle(.multipleDeclaration(symbol: name), line: line, col: col)
             return // Dummy return. Fatal error will be thrown above.
@@ -100,6 +102,8 @@ public class CodeGenerator {
         if case DataType.genType = type {
             SemanticError.handle(.genTypeNotSupported, line: line, col: col)
         } else {
+            let address = symbolTable === globalTable ?
+                            globalAllocator.getNext(type) : localAllocators.top!.getNext(type)
             let kind: SymbolTable.SymbolKind
 
             switch type {
@@ -115,8 +119,10 @@ public class CodeGenerator {
                     name: name,
                     dataType: type,
                     kind: kind,
-                    address: symbolTable === globalTable ?
-                            globalAllocator.getNext(type) : localAllocators.top!.getNext(type))
+                    address: address)
+            if parameter {
+                parameters.append(address)
+            }
         }
     }
 
@@ -432,7 +438,13 @@ public class CodeGenerator {
         jumpStack.push(instructionQueue.nextInstruction - 1)
 
         let lambdaStart = instructionQueue.nextInstruction
-        let valueEntry = FuncValueEntry(address: lambdaAddress, value: lambdaStart, type: type)
+        let valueEntry = FuncValueEntry(
+                address: lambdaAddress,
+                value: lambdaStart,
+                type: type,
+                parameterAddresses: parameters)
+        parameters = [] // Reset parameter list.
+
         funcStack.push(valueEntry)
     }
 
@@ -546,7 +558,7 @@ public class CodeGenerator {
     public func generatePrint() {
         // Stacks are guaranteed to contain values.
         let printAddress = operandStack.pop()!
-        typeStack.pop()!
+        typeStack.pop()
         instructionQueue.push(Quadruple(instruction: .print, first: nil, second: nil, res: printAddress))
     }
 

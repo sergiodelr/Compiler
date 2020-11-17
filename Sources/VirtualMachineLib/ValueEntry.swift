@@ -32,6 +32,7 @@ public struct FuncValueEntry: ValueEntry {
     public let value: Any?
     public var type: DataType { return .funcType(paramTypes: [], returnType: .noneType) }
     public let paramTypes: [DataType]
+    public var paramAddresses = [Int]()
     public let returnType: DataType
     public var paramCount: Int { return paramTypes.count }
     // Address counts for each data type.
@@ -40,7 +41,7 @@ public struct FuncValueEntry: ValueEntry {
     // Symbols in the context. This is set at runtime.
     public var context = [ValueEntry]()
 
-    public init(address: Int, value: Int, type: DataType) {
+    public init(address: Int, value: Int, type: DataType, parameterAddresses: [Int]) {
         self.address = address
         self.value = value
         // Condition will always be true.

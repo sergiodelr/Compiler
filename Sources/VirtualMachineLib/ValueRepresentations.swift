@@ -7,13 +7,13 @@ import Foundation
 // The actual structure a function will be stored with and used during runtime.
 public struct FuncValue: Codable {
     // Structure to capture the function's context.
-    struct FuncContext: Codable {
-        var intValues: [Int: Int]
-        var floatValues: [Int: Float]
-        var charValues: [Int: String]
-        var boolValues: [Int: Bool]
-        var listValues: [Int: ListValue]
-        var funcValues: [Int: FuncValue]
+    public struct FuncContext: Codable {
+        public var intValues: [Int: Int]
+        public var floatValues: [Int: Float]
+        public var charValues: [Int: String]
+        public var boolValues: [Int: Bool]
+        public var listValues: [Int: ListValue]
+        public var funcValues: [Int: FuncValue]
 
         init() {
             intValues = [Int: Int]()
@@ -27,13 +27,15 @@ public struct FuncValue: Codable {
     // The starting instruction in the function.
     let instructionPointer: Int
     let paramCount: Int
+    let paramAddresses: [Int]
     let tempCount: Int
     let constCount: Int
-    var context: FuncContext
+    public var context: FuncContext
 
     public init(fromValueEntry entry: FuncValueEntry) {
         instructionPointer = entry.value! as! Int
         paramCount = entry.paramCount
+        paramAddresses = entry.paramAddresses
         tempCount = entry.tempCount.values.reduce(0, +) // Sum all temps.
         constCount = entry.constCount.values.reduce(0, +) // Sum all consts.
         context = FuncContext()

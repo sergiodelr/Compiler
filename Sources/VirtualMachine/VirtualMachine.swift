@@ -8,7 +8,9 @@ import VirtualMachineLib
 public class VirtualMachine {
     let instructionQueue: InstructionQueue
     var instructionPointer = 0
-
+    var savedInstructionPointers = Stack<Int>()
+    var returnValue: Any = () // Initialized to arbitrary value.
+    var argList = [Any]()
     var memory: VirtualMemory
 
     public init(programContainer: ProgramContainer) {
@@ -102,9 +104,30 @@ public class VirtualMachine {
                 let secondVal = quad.second!
                 cons(firstVal, secondVal, resultAddress: quad.res!)
             case .append:
+                // TODO: Finish append functionality.
                 let firstVal = memory[quad.first!]!
                 let secondVal = memory[quad.second!]!
                 append(firstVal, secondVal, resultAddress: quad.res!)
+            case .car:
+                let val = memory[quad.first!]!
+                guard let listVal = val as? ListValue else {
+                    fatalError("Value error")
+                }
+                guard let valAddress = listVal.value else {
+                    fatalError("Empty list")
+                }
+                let internalVal = memory[valAddress]!
+                memory[quad.res!] = internalVal
+            case .cdr:
+                let val = memory[quad.first!]!
+                guard let listVal = val as? ListValue else {
+                    fatalError("Value error")
+                }
+                guard let nextAddress = listVal.next else {
+                    fatalError("Empty list")
+                }
+                let nextListVal = memory[nextAddress]!
+                memory[quad.res!] = nextListVal
             case .assign:
                 let val = memory[quad.first!]!
                 let addr = quad.res!
@@ -133,6 +156,15 @@ public class VirtualMachine {
                     let instruction = quad.res!
                     instructionPointer = instruction - 1 // One will be added to instructionPointer outside of switch.
                 }
+            case .importCon:
+                let funcVal = memory[quad.first!]! as! FuncValue
+                let val = memory[quad.second!]!
+                memory[quad.first!] = importValue(val, toFunction: funcVal, toAddress: quad.res!)
+            case .arg:
+                let val = memory[quad.first!]!
+                argList.append(val)
+            case .alloc:
+
             case .end:
                 break program
             default:
@@ -412,6 +444,27 @@ public class VirtualMachine {
             // TODO: Handle error.
             fatalError("Not implemented.")
         }
+    }
+
+    private func importValue(_ val: Any, toFunction funcVal: FuncValue, toAddress addr: Int) -> FuncValue {
+        var newFuncVal = funcVal
+        switch val {
+        case let v as Int:
+            newFuncVal.context.intValues[addr] = v
+        case let v as Float:
+            newFuncVal.context.floatValues[addr] = v
+        case let v as String:
+            newFuncVal.context.charValues[addr] = v
+        case let v as Bool:
+            newFuncVal.context.boolValues[addr] = v
+        case let v as ListValue:
+            newFuncVal.context.listValues[addr] = v
+        case let v as FuncValue:
+            newFuncVal.context.funcValues[addr] = v
+        default:
+            fatalError("Value error.")
+        }
+        return newFuncVal
     }
 }
 
