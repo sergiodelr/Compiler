@@ -9,7 +9,7 @@ public class VirtualMachine {
     let instructionQueue: InstructionQueue
     var instructionPointer = 0
 
-    var memory: Memory
+    var memory: VirtualMemory
 
     public init(programContainer: ProgramContainer) {
         instructionQueue = programContainer.instructionQueue
@@ -22,80 +22,119 @@ public class VirtualMachine {
         literals.merge(programContainer.boolLiterals) { (current, _)  in current }
         literals.merge(programContainer.funcLiterals) { (current, _)  in current }
         literals.merge(programContainer.listLiterals) { (current, _)  in current }
-        
-        memory = Memory(literals: literals)
+
+        memory = VirtualMemory(literals: literals)
     }
 
     public func run() {
+        memory.pushLocal()
         runQuads()
     }
 
     func runQuads() {
-        while true {
+        program: while true {
             let quad = instructionQueue[instructionPointer]
             // Optionals are force unwrapped because they are guaranteed to contain a value unless program file is
             // corrupt.
             // TODO: Validate that quadruples contain expected values.
             switch quad.instruction {
             case .add:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 add(firstVal, secondVal, resultAddress: quad.res!)
             case .subtract:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 subtract(firstVal, secondVal, resultAddress: quad.res!)
             case .multiply:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 multiply(firstVal, secondVal, resultAddress: quad.res!)
             case .divide:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 divide(firstVal, secondVal, resultAddress: quad.res!)
             case .positive:
-                let val = memory[quad.first!]
+                let val = memory[quad.first!]!
                 memory[quad.res!] = val
             case .negative:
-                let val = memory[quad.first!]
+                let val = memory[quad.first!]!
                 negative(val, resultAddress: quad.res!)
             case .equal:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 equal(firstVal, secondVal, resultAddress: quad.res!)
             case .notEqual:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 notEqual(firstVal, secondVal, resultAddress: quad.res!)
             case .lessThan:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 lessThan(firstVal, secondVal, resultAddress: quad.res!)
             case .greaterThan:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 greaterThan(firstVal, secondVal, resultAddress: quad.res!)
             case .lessEqual:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 lessEqual(firstVal, secondVal, resultAddress: quad.res!)
             case .greaterEqual:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 greaterEqual(firstVal, secondVal, resultAddress: quad.res!)
             case .and:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 // And operator must be sent as closure because of invalid autoclosure syntax.
                 write(binaryBoolOperation: {$0 && $1}, firstVal, secondVal, resultAddress: quad.res!)
             case .or:
-                let firstVal = memory[quad.first!]
-                let secondVal = memory[quad.second!]
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
                 // And operator must be sent as closure because of invalid autoclosure syntax.
                 write(binaryBoolOperation: {$0 || $1}, firstVal, secondVal, resultAddress: quad.res!)
             case .not:
-                let val = memory[quad.first!]
+                let val = memory[quad.first!]!
                 not(val, resultAddress: quad.res!)
+            case .cons:
+                let firstVal = quad.first!
+                let secondVal = quad.second!
+                cons(firstVal, secondVal, resultAddress: quad.res!)
+            case .append:
+                let firstVal = memory[quad.first!]!
+                let secondVal = memory[quad.second!]!
+                append(firstVal, secondVal, resultAddress: quad.res!)
+            case .assign:
+                let val = memory[quad.first!]!
+                let addr = quad.res!
+                memory[addr] = cast(val, toTypeInAddress: addr)
+            case .print:
+                let val = memory[quad.res!]!
+                printValue(val)
+            case .goTo:
+                let instruction = quad.res!
+                instructionPointer = instruction - 1 // One will be added to instructionPointer outside of switch.
+            case .goToFalse:
+                let val = memory[quad.first!]!
+                guard let boolVal = val as? Bool else {
+                    fatalError("Value error")
+                }
+                if !boolVal {
+                    let instruction = quad.res!
+                    instructionPointer = instruction - 1 // One will be added to instructionPointer outside of switch.
+                }
+            case .goToTrue:
+                let val = memory[quad.first!]!
+                guard let boolVal = val as? Bool else {
+                    fatalError("Value error")
+                }
+                if boolVal {
+                    let instruction = quad.res!
+                    instructionPointer = instruction - 1 // One will be added to instructionPointer outside of switch.
+                }
+            case .end:
+                break program
             default:
                 fatalError("Not supported.")
             }
@@ -308,9 +347,40 @@ public class VirtualMachine {
         }
     }
 
+    func cons(_ left: Int, _ right: Int, resultAddress: Int) {
+        let listValue = ListValue(value: left, next: right)
+        memory[resultAddress] = listValue
+    }
+
+    func append(_ left: Any, _ right: Any, resultAddress: Int) {
+        guard let l = left as? ListValue, let r = right as? ListValue else {
+            fatalError("Value error.")
+        }
+
+    }
+
+    func printValue(_ val: Any) {
+        if var listVal = val as? ListValue {
+            var result = "["
+            while let addr = listVal.value {
+                result += "\(memory[addr]!), "
+                listVal = memory[listVal.next!]! as! ListValue
+            }
+            if result.last == " " {
+                // If last character is a space, remove last space and last comma.
+                result.removeLast()
+                result.removeLast()
+            }
+            result += "]"
+            print(result)
+        } else {
+            print(val)
+        }
+    }
+
     // Writes the result of the given numeric operation to the given address.
     func write<T: SignedNumeric>(numericOperation op: (T, T) -> T, _ l: T, _ r: T, toAddress addr: Int) {
-        memory[addr] = op(l, r)
+        memory[addr] = cast(op(l, r), toTypeInAddress: addr)
     }
 
     // Writes the result of the given equatable operation to the given address.
@@ -345,9 +415,30 @@ public class VirtualMachine {
     }
 }
 
-// Convenience method for list equality.
-// TODO: Refactor ListValue to conform to Equatable instead.
+// Convenience methods.
 extension VirtualMachine {
+    // Casts the given value depending on the address it will be written to.
+    func cast(_ val: Any, toTypeInAddress address: Int ) -> Any {
+        let segmentAddr = address % MemoryPointer.segmentSize
+        switch segmentAddr {
+        case MemoryPointer.intStartAddress ..< MemoryPointer.floatStartAddress:
+            // val must be cast to call initializer.
+            if val is Float {
+                return Int(val as! Float)
+            }
+        case MemoryPointer.floatStartAddress ..< MemoryPointer.charStartAddress:
+            // val must be cast to call initializer.
+            if val is Int {
+                return Float(val as! Int)
+            }
+        default:
+            break
+        }
+        return val
+    }
+
+    // Convenience method for list equality.
+    // TODO: Refactor ListValue to conform to Equatable instead.
     func equals(_ l: ListValue, _ r: ListValue) -> Bool {
         // Base case: Empty lists.
         if l.value == nil && l.next == nil && r.value == nil && r.next == nil {

@@ -7,3 +7,8 @@ import VirtualMachineLib
 
 let f = "/home/sergio/Documents/compis/out.txt"
 let programContainer = ProgramContainer.create(fromFileAtPath: f)
+guard let programContainer = programContainer else {
+    fatalError()
+}
+let virtualMachine = VirtualMachine(programContainer: programContainer)
+virtualMachine.run()

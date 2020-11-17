@@ -40,6 +40,7 @@ public enum VMOperator: String, Codable {
     case arg
     case call
     case receiveRes
+    case end
     case placeholder
 }
 

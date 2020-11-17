@@ -482,7 +482,6 @@ public class CodeGenerator {
             return // Dummy return.
         }
         instructionQueue.push(Quadruple(instruction: .alloc, first: nil, second: nil, res: funcOp))
-        print("fcs")
     }
 
     // Generates quadruples necessary for sending arguments to function calls. If argument count or type does not match
@@ -509,7 +508,6 @@ public class CodeGenerator {
             return // Dummy return.
         }
         instructionQueue.push(Quadruple(instruction: .arg, first: arg, second: nil, res: pos))
-        print("arg")
     }
 
     // Generate quadruples necessary to end a func call. If argument count does not match, an error is thrown.
@@ -550,6 +548,10 @@ public class CodeGenerator {
         let printAddress = operandStack.pop()!
         typeStack.pop()!
         instructionQueue.push(Quadruple(instruction: .print, first: nil, second: nil, res: printAddress))
+    }
+
+    public func generateProgramEnd() {
+        instructionQueue.push(Quadruple(instruction: .end, first: nil, second: nil, res: nil))
     }
 
     public func save() {

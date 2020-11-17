@@ -721,6 +721,7 @@ public class Parser {
         Get()
         Comp()
         Expect(_EOF)
+        codeGenerator.generateProgramEnd()
         codeGenerator.save()
     }
 

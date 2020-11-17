@@ -47,6 +47,11 @@ public struct ListValue: Codable, Equatable {
     // Next node.
     public var next: Int?
 
+    public init(value: Int?, next: Int?) {
+        self.value = value
+        self.next = next
+    }
+
     public init(fromValueEntry entry: ListValueEntry) {
         value = entry.value as! Int?
         next = entry.next
