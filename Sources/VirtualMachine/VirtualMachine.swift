@@ -163,8 +163,27 @@ public class VirtualMachine {
             case .arg:
                 let val = memory[quad.first!]!
                 argList.append(val)
-            case .alloc:
-
+            case .call:
+                let funcVal = memory[quad.res!]! as! FuncValue
+                savedInstructionPointers.push(instructionPointer)
+                // One will be added to instructionPointer outside of switch.
+                instructionPointer = funcVal.instructionPointer - 1
+                // Push new local memory, initialize parameters and context. Reset argument list.
+                memory.pushLocal()
+                zip(funcVal.paramAddresses, argList).forEach{(address, value) in
+                    memory[address] = value
+                }
+                importContext(funcVal.context)
+                argList = []
+            case .ret:
+                // Save return value, pop local memory and return to previous instruction pointer.
+                returnValue = memory[quad.res!]!
+                memory.popLocal()
+                instructionPointer = savedInstructionPointers.pop()!
+            case .receiveRes:
+                // Set return value to the given memory address.
+                let resultAddress = quad.res!
+                memory[resultAddress] = returnValue
             case .end:
                 break program
             default:
@@ -465,6 +484,21 @@ public class VirtualMachine {
             fatalError("Value error.")
         }
         return newFuncVal
+    }
+
+    private func importContext(_ context: FuncValue.FuncContext) {
+        var memoryMapping = [Int: Any]()
+        // Values are guaranteed not to collide.
+        memoryMapping.merge(context.intValues){ (current, _) in current }
+        memoryMapping.merge(context.floatValues){ (current, _) in current }
+        memoryMapping.merge(context.charValues){ (current, _) in current }
+        memoryMapping.merge(context.boolValues){ (current, _) in current }
+        memoryMapping.merge(context.funcValues){ (current, _) in current }
+        memoryMapping.merge(context.listValues){ (current, _) in current }
+
+        for (addr, val) in memoryMapping {
+            memory[addr] = val
+        }
     }
 }
 

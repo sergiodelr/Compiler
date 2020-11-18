@@ -470,7 +470,7 @@ public class Parser {
             Expect(24 /* ":" */)
 
             var type = Type()
-            codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+            codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col, parameter: true)
             paramTypes.append(type)
             while la.kind == 30 /* "," */ {
                 Get()
@@ -479,7 +479,7 @@ public class Parser {
                 Expect(24 /* ":" */)
 
                 type = Type()
-                codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col)
+                codeGenerator.newSymbol(name: name, type: type, line: t.line, col: t.col, parameter: true)
                 paramTypes.append(type)
             }
         }

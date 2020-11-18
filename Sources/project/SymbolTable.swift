@@ -20,12 +20,14 @@ public class SymbolTable: CustomDebugStringConvertible {
         public var dataType: DataType = .noneType
         public var kind: SymbolKind = .noKind
         public var address: Int? = nil
+        public var assigned: Bool = false
 
-        public init(name: String, dataType: DataType, kind: SymbolKind, address: Int?) {
+        public init(name: String, dataType: DataType, kind: SymbolKind, address: Int?, assigned: Bool = false) {
             self.name = name
             self.dataType = dataType
             self.kind = kind
             self.address = address
+            self.assigned = assigned
         }
 
         public var debugDescription: String { return "n: \(name), t: \(dataType), a: \(address)" }
@@ -33,7 +35,7 @@ public class SymbolTable: CustomDebugStringConvertible {
 
     // Private
     private var table: [String: Entry]
-
+    private var addressToName: [Int: String]
     // Public
     public var parent: SymbolTable?
 
@@ -43,6 +45,7 @@ public class SymbolTable: CustomDebugStringConvertible {
 
     public init( parent: SymbolTable? = nil) {
         table = [:]
+        addressToName = [:]
         self.parent = parent
     }
 
@@ -53,7 +56,26 @@ public class SymbolTable: CustomDebugStringConvertible {
         }
         set {
             table[name] = newValue
+            if let entry = newValue {
+                addressToName[entry.address!] = name
+            }
+
             print(String(reflecting: self))
+        }
+    }
+
+    // Address-based subscript access.
+    public subscript(address: Int) -> Entry? {
+        get {
+            if let name = addressToName[address] {
+                return table[name]
+            }
+            return nil
+        }
+        set {
+            if let name = addressToName[address] {
+                table[name] = newValue
+            }
         }
     }
 

@@ -43,7 +43,9 @@ public class VirtualMemory: Memory {
                 break
             }
             // TODO: handle error.
-            fatalError("Invalid address.")
+            print("Local mem")
+            print(String(reflecting: localSegments.top))
+            fatalError("Invalid address get. \(index)")
         }
         set {
             switch index {
@@ -62,7 +64,7 @@ public class VirtualMemory: Memory {
                 break
             }
             // TODO: handle error.
-            fatalError("Invalid address.")
+            fatalError("Invalid address set. \(index)")
         }
     }
 
@@ -75,7 +77,7 @@ public class VirtualMemory: Memory {
     }
 }
 
-class MemorySegment: Memory {
+class MemorySegment: Memory, CustomDebugStringConvertible {
     var segmentMemory: [Int: Any]
 
     public init() {
@@ -95,5 +97,10 @@ class MemorySegment: Memory {
         set {
             segmentMemory[index] = newValue
         }
+    }
+
+    // CustomDebugStringConvertible
+    var debugDescription: String {
+        return String(reflecting: segmentMemory)
     }
 }

@@ -35,15 +35,13 @@ public class CodeGenerator {
     private var funcStack: Stack<FuncValueEntry>
     // Parameter addresses for current function.
     private var parameters: [Int]
-    // Searches for a symbol in the current table and in parent tables and returns the entry if found.
+    // Searches for a symbol in the current table and in the global table.
     private func find(name: String) -> SymbolTable.Entry? {
-        var tempTable: SymbolTable? = symbolTable
-        while tempTable != nil {
-            // Temp table is not nil
-            if let entry = tempTable![name] {
-                return entry
-            }
-            tempTable = tempTable!.parent
+        if let entry = symbolTable[name] {
+            return entry
+        }
+        if let entry = globalTable[name] {
+            return entry
         }
         return nil
     }
@@ -60,7 +58,8 @@ public class CodeGenerator {
                 name: entry.name,
                 dataType: entry.dataType,
                 kind: entry.kind,
-                address: address)
+                address: address,
+                assigned: entry.assigned)
         return address
     }
 
@@ -115,14 +114,19 @@ public class CodeGenerator {
             default:
                 kind = .constKind
             }
+            let assigned: Bool
+            if parameter {
+                parameters.append(address)
+                assigned = true
+            } else {
+                assigned = false
+            }
             symbolTable[name] = SymbolTable.Entry(
                     name: name,
                     dataType: type,
                     kind: kind,
-                    address: address)
-            if parameter {
-                parameters.append(address)
-            }
+                    address: address,
+                    assigned: assigned)
         }
     }
 
@@ -248,6 +252,10 @@ public class CodeGenerator {
                             first: rightOperand,
                             second: nil,
                             res: leftOperand))
+            // Set entry as assigned.
+            var assignedEntry = symbolTable[leftOperand]
+            assignedEntry!.assigned = true
+            symbolTable[leftOperand] = assignedEntry
         }
         tempAllocators.top!.recycle(leftOperand)
         tempAllocators.top!.recycle(rightOperand)
@@ -423,7 +431,7 @@ public class CodeGenerator {
         let tempTable = symbolTable.parent!
         var newAddress: Int
         if tempTable !== globalTable {
-            for entry in tempTable.entries {
+            for entry in tempTable.entries where entry.assigned {
                 newAddress = importSymbol(entry: entry)
                 instructionQueue.push(
                         Quadruple(
@@ -487,13 +495,11 @@ public class CodeGenerator {
     public func generateFuncCallStart(line: Int, col: Int) {
         // Check that operand is a function.
         // Stacks are guaranteed to contain values.
-        let funcOp = operandStack.top!
         let funcType = typeStack.top!
-        guard case let DataType.funcType(paramTypes, returnType) = funcType else {
+        guard case DataType.funcType = funcType else {
             SemanticError.handle(.invalidFuncCall, line: line, col: col)
             return // Dummy return.
         }
-        instructionQueue.push(Quadruple(instruction: .alloc, first: nil, second: nil, res: funcOp))
     }
 
     // Generates quadruples necessary for sending arguments to function calls. If argument count or type does not match

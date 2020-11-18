@@ -44,6 +44,7 @@ public struct FuncValueEntry: ValueEntry {
     public init(address: Int, value: Int, type: DataType, parameterAddresses: [Int]) {
         self.address = address
         self.value = value
+        self.paramAddresses = parameterAddresses
         // Condition will always be true.
         if case let DataType.funcType(paramTypes , returnType) = type{
             self.paramTypes = paramTypes
