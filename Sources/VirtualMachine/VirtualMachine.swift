@@ -275,7 +275,7 @@ public class VirtualMachine {
 
     func not(_ val: Any, resultAddress: Int) {
         if let v = val as? Bool {
-            memory[resultAddress] = v
+            memory[resultAddress] = !v
         } else {
             // TODO: Handle error.
             fatalError("Not implemented.")

@@ -450,6 +450,7 @@ public class Parser {
             Expect(27 /* ")" */)
             codeGenerator.generateRead(type: type, line: t.line, col: t.col)
         } else {
+            print(la.kind)
             SynErr(54)
         }
         codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
@@ -650,6 +651,12 @@ public class Parser {
         case _CHARCONS:
             Get()
             codeGenerator.pushLiteral(t.val, type: .charType)
+        case _TRUE:
+            Get()
+            codeGenerator.pushLiteral(t.val, type: .boolType)
+        case _FALSE:
+            Get()
+            codeGenerator.pushLiteral(t.val, type: .boolType)
         case _ID:
             Get()
             let name = t.val
@@ -681,7 +688,8 @@ public class Parser {
             SimpleExp()
             Expect(27 /* ")" */)
             codeGenerator.popOperator() // Remove false bottom.
-        default: SynErr(56)
+        default:
+            SynErr(56)
         }
         codeGenerator.generateOneOperandExpQuadruple(op: .posOp, line: t.line, col: t.col)
     }
@@ -731,10 +739,10 @@ public class Parser {
 
     static let _set: [[Bool]] = [
         [_T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x],
-        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
+        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _T, _T, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
         [_x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x],
-        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
-        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
+        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
+        [_x, _T, _T, _T, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _x, _x, _x, _T, _x, _x, _x, _x, _T, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _x, _x, _x, _T, _x, _x],
         [_x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _x, _T, _T, _T, _T, _T, _T, _x, _x, _x, _x, _x, _x, _x, _x]
 
     ]

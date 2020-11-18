@@ -232,11 +232,21 @@ public enum ExpressionTypeTable {
             if case DataType.boolType = type1 {
                 return .boolType
             }
-        case .posOp, .negOp:
+        case .posOp:
             if case DataType.intType = type1 {
                 return .intType
             } else if case DataType.floatType = type1 {
                 return .floatType
+            } else if case let DataType.listType(innerType) = type1 {
+                return .listType(innerType: innerType)
+            }
+        case .negOp:
+            if case DataType.intType = type1 {
+                return .intType
+            } else if case DataType.floatType = type1 {
+                return .floatType
+            } else if case let DataType.listType(innerType) = type1 {
+                return innerType
             }
         default:
             return table[op]?[type1]?[type2] ?? .errType
