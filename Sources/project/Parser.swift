@@ -228,11 +228,13 @@ public class Parser {
         let returnType = Type()
         let functionType = DataType.funcType(paramTypes: paramTypes, returnType: returnType)
         codeGenerator.newSymbol(name: name, type: functionType, line: t.line, col: t.col)
-
+        codeGenerator.pushName(name, line: t.line, col: t.col)
         Expect(25 /* "=" */)
+        codeGenerator.pushOperator(.assgOp)
         Expect(28 /* "{" */)
         FuncBody(functionType)
         Expect(29 /* "}" */)
+        codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
     }
 
     // Returns the parsed data type.
@@ -293,6 +295,8 @@ public class Parser {
     func FuncBody(_ funcType: DataType) {
         // Create symbol table for case.
         codeGenerator.newSymbolTable()
+        codeGenerator.generateFuncStart(type: funcType, line: t.line, col: t.col)
+
         Case(funcType)
         // Reset symbol table.
         codeGenerator.deleteSymbolTable()
@@ -332,12 +336,14 @@ public class Parser {
         // If case statement is used to extract parameter and return types. It is guaranteed that pattern will always
         // have a match.
         if case let DataType.funcType(paramTypes, returnType) = funcType {
+            codeGenerator.generateLambdaStart(type: .funcType(paramTypes: paramTypes, returnType: returnType))
             PatternList(paramTypes)
             Expect(25 /* "=" */)
             if la.kind == _LET {
                 ConstList()
             }
             Expression()
+            codeGenerator.generateLambdaEnd(line: t.line, col: t.col)
         } else {
             SemanticError.handle(.internalError, line: t.line, col: t.col)
         }
@@ -346,12 +352,26 @@ public class Parser {
     // Receives the parameter types. Matches each pattern with its type.
     func PatternList(_ paramTypes: [DataType]) {
         // TODO: finish pattern matching.
-        Pattern(paramTypes[0])
+        Pattern(0, paramTypes[0])
         var patCount = 1
         while la.kind == 30 /* "," */ {
+            // Validate pattern count.
+            if patCount == paramTypes.count {
+                SemanticError.handle(
+                        .invalidPatternCount(expected: paramTypes.count, received: patCount + 1),
+                        line: t.line,
+                        col: t.col)
+            }
             Get()
-            Pattern(paramTypes[patCount])
+            Pattern(patCount, paramTypes[patCount])
             patCount += 1
+        }
+        // Validate pattern count.
+        if patCount != paramTypes.count {
+            SemanticError.handle(
+                    .invalidPatternCount(expected: paramTypes.count, received: patCount),
+                    line: t.line,
+                    col: t.col)
         }
     }
 
@@ -364,8 +384,11 @@ public class Parser {
         Expect(_IN)
     }
 
+    // TODO: Finish implementing patterns.
     // Receives a data type and matches the pattern. If pattern is an id, it adds it to the symbol table.
-    func Pattern(_ patternType: DataType) {
+    func Pattern(_ count: Int, _ patternType: DataType) {
+        // The name of the parameter the pattern will be matched to.
+        let paramName = "\(count)param"
         if la.kind == 42 /* "-" */ || la.kind == _INTCONS || la.kind == _FLOATCONS {
             if la.kind == 42 /* "-" */ {
                 Get()
@@ -377,8 +400,10 @@ public class Parser {
             } else {
                 SynErr(53)
             }
+            SemanticError.handle(.patternNotImplemented, line: t.line, col: t.col)
         } else if la.kind == _CHARCONS {
             Get()
+            SemanticError.handle(.patternNotImplemented, line: t.line, col: t.col)
         } else if la.kind == _ID {
             Get()
             let firstId = t.val
@@ -388,11 +413,13 @@ public class Parser {
                 Get()
                 Expect(_ID)
                 secondId = t.val
+                SemanticError.handle(.patternNotImplemented, line: t.line, col: t.col)
             }
 
             switch patternType {
             case let .listType(innerType):
                 if let secondId = secondId {
+                    SemanticError.handle(.patternNotImplemented, line: t.line, col: t.col)
                     // If it is a list type and pattern is "id1:id2", add both ids to symbol table if they are not "_".
                     if firstId != "_" {
                         codeGenerator.newSymbol(name: firstId, type: innerType, line: t.line, col: t.col)
@@ -404,6 +431,11 @@ public class Parser {
                     // If there is only one id, then add it to the symbol table with patternType if it is not "_".
                     if firstId != "_" {
                         codeGenerator.newSymbol(name: firstId, type: patternType, line: t.line, col: t.col)
+                        // Assign value from parameter to variable pattern.
+                        codeGenerator.pushName(firstId, line: t.line, col: t.col)
+                        codeGenerator.pushOperator(.assgOp)
+                        codeGenerator.pushName(paramName, line: t.line, col: t.col)
+                        codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
                     }
                 }
             default:
@@ -414,6 +446,11 @@ public class Parser {
                     // Else add entry normally to table.
                     if firstId != "_" {
                         codeGenerator.newSymbol(name: firstId, type: patternType, line: t.line, col: t.col)
+                        // Assign value from parameter to variable pattern.
+                        codeGenerator.pushName(firstId, line: t.line, col: t.col)
+                        codeGenerator.pushOperator(.assgOp)
+                        codeGenerator.pushName(paramName, line: t.line, col: t.col)
+                        codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
                     }
                 }
             }
@@ -421,6 +458,7 @@ public class Parser {
         } else if la.kind == 31 /* "[" */ {
             Get()
             Expect(32 /* "]" */)
+            SemanticError.handle(.patternNotImplemented, line: t.line, col: t.col)
         } else {
             SynErr(53)
         }
@@ -488,11 +526,11 @@ public class Parser {
         Expect(24 /* ":" */)
         let returnType = Type()
         Expect(28 /* "{" */)
-        codeGenerator.generateFuncStart(type: .funcType(paramTypes: paramTypes, returnType: returnType))
+        codeGenerator.generateLambdaStart(type: .funcType(paramTypes: paramTypes, returnType: returnType))
 
         Expression()
         Expect(29 /* "}" */)
-        codeGenerator.generateFuncEnd(line: t.line, col: t.col)
+        codeGenerator.generateLambdaEnd(line: t.line, col: t.col)
         // Reset current symbol table.
         codeGenerator.deleteSymbolTable()
     }

@@ -316,11 +316,20 @@ public class CodeGenerator {
                 return
             }
 
+            // Resulting list cell and value to which cell points must be stored in a non-temporary space.
+            // TODO: Implement heap-like memory space to store these values.
             let result = literalAllocator.getNext(resultType)
+            let valueAddress = literalAllocator.getNext(leftType)
+            instructionQueue.push(
+                    Quadruple(
+                            instruction: .assign,
+                            first: leftOperand,
+                            second: nil,
+                            res: valueAddress))
             instructionQueue.push(
                     Quadruple(
                             instruction: langOperatorToVMOperator(op: topOperator),
-                            first: leftOperand,
+                            first: valueAddress,
                             second: rightOperand,
                             res: result))
             operandStack.push(result)
@@ -418,14 +427,27 @@ public class CodeGenerator {
         instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }
 
+    // Generates functionality for function start.
+    public func generateFuncStart(type: DataType, line: Int, col: Int) {
+        // Guard statement should always pass.
+        guard case let DataType.funcType(paramTypes, returnType) = type else {
+            SemanticError.handle(.internalError)
+            return // Dummy return.
+        }
+        // Generate parameter names and add them to symbol table.
+        for (index, paramType) in paramTypes.enumerated() {
+            // Names are guaranteed not to collide with user-defined ones.
+            newSymbol(name: "\(index)param", type: paramType, line: line, col: col, parameter: true)
+        }
+    }
+
     // Creates a lambda literal. Generates quadruples necessary for function starts. Imports symbols from context to
     // current table.
-    public func generateFuncStart(type: DataType) {
+    public func generateLambdaStart(type: DataType) {
         // Create lambda literal.
         // Stacks are guaranteed to contain values.
         let lambdaAddress = literalAllocator.getNext(.funcType(paramTypes: [], returnType: .noneType))
 
-        // TODO: Prevent const where lambda will be assigned from being imported.
         // Import local symbols from context.
         // Table is guaranteed to have a parent.
         let tempTable = symbolTable.parent!
@@ -457,7 +479,7 @@ public class CodeGenerator {
     }
 
     // Generates quadruples necessary for function ends.
-    public func generateFuncEnd(line: Int, col: Int) {
+    public func generateLambdaEnd(line: Int, col: Int) {
         // Stacks are guaranteed to contain values.
         let returnVal = operandStack.pop()!
         let returnType = typeStack.pop()!

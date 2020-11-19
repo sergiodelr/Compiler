@@ -58,6 +58,7 @@ public class VirtualMachine {
                 divide(firstVal, secondVal, resultAddress: quad.res!)
             case .positive:
                 let val = memory[quad.first!]!
+                // TODO: Remove this patch when pattern matching is available.
                 if let listVal = val as? ListValue {
                     cdr(listVal, resultAddress: quad.res!)
                 } else {
@@ -65,6 +66,7 @@ public class VirtualMachine {
                 }
             case .negative:
                 let val = memory[quad.first!]!
+                // TODO: Remove this patch when pattern matching is available.
                 if let listVal = val as? ListValue {
                     car(listVal, resultAddress: quad.res!)
                 } else {
@@ -123,6 +125,10 @@ public class VirtualMachine {
             case .print:
                 let val = memory[quad.res!]!
                 printValue(val)
+            case .read:
+                let addr = quad.res!
+                let input = readLine()
+                read(input, resultAddress: addr)
             case .goTo:
                 let instruction = quad.res!
                 instructionPointer = instruction - 1 // One will be added to instructionPointer outside of switch.
@@ -407,11 +413,11 @@ public class VirtualMachine {
         memory[resultAddress] = nextListVal
     }
 
+    // TODO: Implement
     func append(_ left: Any, _ right: Any, resultAddress: Int) {
         guard let l = left as? ListValue, let r = right as? ListValue else {
             fatalError("Value error.")
         }
-
     }
 
     func printValue(_ val: Any) {
@@ -430,6 +436,17 @@ public class VirtualMachine {
             print(result)
         } else {
             print(val)
+        }
+    }
+
+    func read(_ input: String?, resultAddress: Int) {
+        guard let input = input, !input.isEmpty else {
+            fatalError("Read error")
+        }
+        if let val = castInputString(input, toTypeInAddress: resultAddress) {
+            memory[resultAddress] = val
+        } else {
+            fatalError("Read error")
         }
     }
 
@@ -508,6 +525,25 @@ public class VirtualMachine {
 
 // Convenience methods.
 extension VirtualMachine {
+    // Casts the given string to the value contained in the given address. String must not be empty.
+    func castInputString(_ input: String, toTypeInAddress address: Int) -> Any? {
+        let segmentAddr = address % MemoryPointer.segmentSize
+        switch segmentAddr {
+        case MemoryPointer.intStartAddress ..< MemoryPointer.floatStartAddress:
+            return Int(input)
+        case MemoryPointer.floatStartAddress ..< MemoryPointer.charStartAddress:
+            return Float(input)
+        case MemoryPointer.charStartAddress ..< MemoryPointer.boolStartAddress:
+            return String(input.first!)
+        case MemoryPointer.boolStartAddress ..< MemoryPointer.funcStartAddress:
+            return Bool(input)
+        default:
+            break
+        }
+        // TODO: Error
+        fatalError("Read error.")
+    }
+
     // Casts the given value depending on the address it will be written to.
     func cast(_ val: Any, toTypeInAddress address: Int ) -> Any {
         let segmentAddr = address % MemoryPointer.segmentSize

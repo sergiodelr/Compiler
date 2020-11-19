@@ -14,6 +14,8 @@ public enum SemanticError: Error {
     case genTypeNotSupported
     case invalidFuncCall
     case invalidArgCount(expected: Int, received: Int)
+    case patternNotImplemented
+    case invalidPatternCount(expected: Int, received: Int)
 
     func description() -> String {
         switch self {
@@ -33,6 +35,10 @@ public enum SemanticError: Error {
             return "Invalid function call."
         case let .invalidArgCount(expected, received):
             return "Invalid argument count. Expected: \(expected). Received: \(received)"
+        case .patternNotImplemented:
+            return "Pattern not implemented."
+        case let .invalidPatternCount(expected, received):
+            return "Invalid pattern count. Expected: \(expected). Received: \(received)"
         }
     }
 
