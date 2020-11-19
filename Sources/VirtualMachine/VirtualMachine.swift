@@ -58,10 +58,18 @@ public class VirtualMachine {
                 divide(firstVal, secondVal, resultAddress: quad.res!)
             case .positive:
                 let val = memory[quad.first!]!
-                memory[quad.res!] = val
+                if let listVal = val as? ListValue {
+                    cdr(listVal, resultAddress: quad.res!)
+                } else {
+                    memory[quad.res!] = val
+                }
             case .negative:
                 let val = memory[quad.first!]!
-                negative(val, resultAddress: quad.res!)
+                if let listVal = val as? ListValue {
+                    car(listVal, resultAddress: quad.res!)
+                } else {
+                    negative(val, resultAddress: quad.res!)
+                }
             case .equal:
                 let firstVal = memory[quad.first!]!
                 let secondVal = memory[quad.second!]!
@@ -108,26 +116,6 @@ public class VirtualMachine {
                 let firstVal = memory[quad.first!]!
                 let secondVal = memory[quad.second!]!
                 append(firstVal, secondVal, resultAddress: quad.res!)
-            case .car:
-                let val = memory[quad.first!]!
-                guard let listVal = val as? ListValue else {
-                    fatalError("Value error")
-                }
-                guard let valAddress = listVal.value else {
-                    fatalError("Empty list")
-                }
-                let internalVal = memory[valAddress]!
-                memory[quad.res!] = internalVal
-            case .cdr:
-                let val = memory[quad.first!]!
-                guard let listVal = val as? ListValue else {
-                    fatalError("Value error")
-                }
-                guard let nextAddress = listVal.next else {
-                    fatalError("Empty list")
-                }
-                let nextListVal = memory[nextAddress]!
-                memory[quad.res!] = nextListVal
             case .assign:
                 let val = memory[quad.first!]!
                 let addr = quad.res!
@@ -401,6 +389,22 @@ public class VirtualMachine {
     func cons(_ left: Int, _ right: Int, resultAddress: Int) {
         let listValue = ListValue(value: left, next: right)
         memory[resultAddress] = listValue
+    }
+
+    func car(_ val: ListValue, resultAddress: Int) {
+        guard let valAddress = val.value else {
+            fatalError("Empty list")
+        }
+        let internalVal = memory[valAddress]!
+        memory[resultAddress] = internalVal
+    }
+
+    func cdr(_ val: ListValue, resultAddress: Int) {
+        guard let nextAddress = val.next else {
+            fatalError("Empty list")
+        }
+        let nextListVal = memory[nextAddress]!
+        memory[resultAddress] = nextListVal
     }
 
     func append(_ left: Any, _ right: Any, resultAddress: Int) {
