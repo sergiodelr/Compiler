@@ -421,22 +421,34 @@ public class VirtualMachine {
     }
 
     func printValue(_ val: Any) {
-        if var listVal = val as? ListValue {
-            var result = "["
-            while let addr = listVal.value {
-                result += "\(memory[addr]!), "
-                listVal = memory[listVal.next!]! as! ListValue
+        // Converts the given value to a string.
+        func stringVal(_ val: Any) -> String {
+            var result: String
+            switch val {
+            case var listVal as ListValue:
+                result = "["
+                while let addr = listVal.value {
+                    result += stringVal(memory[addr]!) + ", "
+                    listVal = memory[listVal.next!]! as! ListValue
+                }
+                if result.last == " " {
+                    // If last character is a space, remove last space and last comma.
+                    result.removeLast()
+                    result.removeLast()
+                }
+                result += "]"
+            case let v as Int:
+                result = String(v)
+            case let v as Float:
+                result = String(v)
+            case let v as Bool:
+                result = String(v)
+            default:
+                result = val as! String
             }
-            if result.last == " " {
-                // If last character is a space, remove last space and last comma.
-                result.removeLast()
-                result.removeLast()
-            }
-            result += "]"
-            print(result)
-        } else {
-            print(val)
+            return result
         }
+        print(stringVal(val))
     }
 
     func read(_ input: String?, resultAddress: Int) {

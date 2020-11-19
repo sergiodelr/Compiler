@@ -248,6 +248,16 @@ public enum ExpressionTypeTable {
             } else if case let DataType.listType(innerType) = type1 {
                 return innerType
             }
+        case .eqOp, .notEqOp:
+            if case let DataType.listType(innerType1) = type1,
+               case let DataType.listType(innerType2) = type2 {
+                if innerType1 == innerType2 {
+                    return .boolType
+                } else if innerType1 == .noneType || innerType2 == .noneType {
+                    return .boolType
+                }
+            }
+            fallthrough // If the types are other than lists, they must be checked in the table.
         default:
             return table[op]?[type1]?[type2] ?? .errType
         }
