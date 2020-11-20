@@ -215,6 +215,11 @@ public enum ExpressionTypeTable {
                 return type1
             } else if case DataType.floatType = type1, case DataType.intType = type2 {
                 return type1
+            } else if case let DataType.listType(innerType1) = type1,
+                      case let DataType.listType(innerType2) = type2 {
+                if innerType1 == innerType2 || innerType2 == .noneType || canCast(to: innerType1, from: innerType2) {
+                    return type1
+                }
             }
         case .consOp:
             if case let DataType.listType(innerType) = type2, type1 == innerType {
@@ -251,7 +256,7 @@ public enum ExpressionTypeTable {
         case .eqOp, .notEqOp:
             if case let DataType.listType(innerType1) = type1,
                case let DataType.listType(innerType2) = type2 {
-                if innerType1 == innerType2 {
+                if canCast(to: innerType1, from: innerType2) || canCast(to: innerType2, from: innerType1) {
                     return .boolType
                 } else if innerType1 == .noneType || innerType2 == .noneType {
                     return .boolType
@@ -265,8 +270,16 @@ public enum ExpressionTypeTable {
     }
 
     // Checks whether two data types are compatible for casting.
-    public static func canCast(from type1: DataType, to type2: DataType) -> Bool {
+    public static func canCast(to type1: DataType, from type2: DataType) -> Bool {
         return getDataType(op: .assgOp, type1: type1, type2: type2) != .errType
+    }
+
+    // Returns the most inner type of the given list type.
+    public static func mostInnerType(ofListType type: DataType) -> DataType {
+        if case let DataType.listType(innerType) = type {
+            return mostInnerType(ofListType: innerType)
+        }
+        return type
     }
 }
 

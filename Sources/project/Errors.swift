@@ -7,6 +7,8 @@ import VirtualMachineLib
 
 public enum SemanticError: Error {
     case multipleDeclaration(symbol: String)
+    case operatorTypeMismatch(op: LangOperator, left: DataType, right: DataType)
+    case operatorTypeMismatchSingle(op: LangOperator, operand: DataType)
     case typeMismatch(expected: DataType, received: DataType)
     case symbolNotDeclared(symbol: String)
     case internalError
@@ -39,6 +41,10 @@ public enum SemanticError: Error {
             return "Pattern not implemented."
         case let .invalidPatternCount(expected, received):
             return "Invalid pattern count. Expected: \(expected). Received: \(received)"
+        case let .operatorTypeMismatch(op, left, right):
+            return "Invalid operand types for operator. Operator: \(op). Operands: \(left), \(right)"
+        case let .operatorTypeMismatchSingle(op, operand):
+            return "Invalid operand type for operator. Operator: \(op). Operand: \(operand)"
         }
     }
 

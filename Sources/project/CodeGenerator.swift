@@ -228,11 +228,9 @@ public class CodeGenerator {
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
         guard resultType != .errType else {
-            // TODO: send correct types to error.
-            print(leftOperand)
-            print(rightOperand)
-            print(topOperator)
-            SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
+            SemanticError.handle(.operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
+                    line: line,
+                    col: col)
             return
         }
         if topOperator != .assgOp {
@@ -278,7 +276,9 @@ public class CodeGenerator {
 
         guard resultType != .errType else {
             // TODO: send correct types to error.
-            SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
+            SemanticError.handle(.operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
+                    line: line,
+                    col: col)
             return
         }
 
@@ -311,8 +311,10 @@ public class CodeGenerator {
             let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
             guard resultType != .errType else {
-                // TODO: send correct types to error.
-                SemanticError.handle(.typeMismatch(expected: leftType, received: rightType), line: line, col: col)
+                SemanticError.handle(
+                        .operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
+                        line: line,
+                        col: col)
                 return
             }
 
@@ -354,13 +356,10 @@ public class CodeGenerator {
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: operandType, type2: operandType)
 
         guard resultType != .errType else {
-            let expectedType: DataType
-            if topOperator == .posOp || topOperator == .negOp {
-                expectedType = .intType
-            } else {
-                expectedType = .boolType
-            }
-            SemanticError.handle(.typeMismatch(expected: expectedType, received: operandType), line: line, col: col)
+            SemanticError.handle(
+                    .operatorTypeMismatchSingle(op: topOperator, operand: operandType),
+                    line: line,
+                    col: col)
             return
         }
         let result = tempAllocators.top!.getNext(resultType)
@@ -416,21 +415,29 @@ public class CodeGenerator {
         let elseType = typeStack.pop()!
         let thenResult = operandStack.top!
         let thenType = typeStack.top!
-        guard thenType == elseType else {
+        if ExpressionTypeTable.canCast(to: elseType, from: thenType) ||
+                   ExpressionTypeTable.canCast(to: thenType, from: elseType) {
+            // Make sure that, in case there is an empty list in any of the results, the result type contains the type
+            // of the non-empty list.
+            if ExpressionTypeTable.mostInnerType(ofListType: thenType) == .noneType {
+                typeStack.pop()
+                typeStack.push(elseType)
+            }
+            instructionQueue.push(Quadruple(instruction: .assign, first: elseResult, second: nil, res: thenResult))
+            tempAllocators.top!.recycle(elseResult)
+
+            let endJump = jumpStack.pop()!
+            instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
+        } else {
             SemanticError.handle(.typeMismatch(expected: thenType, received: elseType), line: line, col: col)
             return // Dummy return.
         }
-        instructionQueue.push(Quadruple(instruction: .assign, first: elseResult, second: nil, res: thenResult))
-        tempAllocators.top!.recycle(elseResult)
-
-        let endJump = jumpStack.pop()!
-        instructionQueue.fillResult(at: endJump, result: instructionQueue.nextInstruction)
     }
 
     // Generates functionality for function start.
     public func generateFuncStart(type: DataType, line: Int, col: Int) {
         // Guard statement should always pass.
-        guard case let DataType.funcType(paramTypes, returnType) = type else {
+        guard case let DataType.funcType(paramTypes, _) = type else {
             SemanticError.handle(.internalError)
             return // Dummy return.
         }
@@ -441,7 +448,7 @@ public class CodeGenerator {
         }
     }
 
-    // Creates a lambda literal. Generates quadruples necessary for function starts. Imports symbols from context to
+    // Creates a lambda literal. Generates quadruples necessary for lambda starts. Imports symbols from context to
     // current table.
     public func generateLambdaStart(type: DataType) {
         // Create lambda literal.
@@ -485,7 +492,7 @@ public class CodeGenerator {
         let returnType = typeStack.pop()!
         let funcStartIndex = jumpStack.pop()!
         var funcValueEntry = funcStack.pop()!
-        guard returnType == funcValueEntry.returnType else {
+        guard ExpressionTypeTable.canCast(to: funcValueEntry.returnType, from: returnType)  else {
             SemanticError.handle(
                     .typeMismatch(expected: funcValueEntry.returnType, received: returnType),
                     line: line,
@@ -517,11 +524,13 @@ public class CodeGenerator {
     public func generateFuncCallStart(line: Int, col: Int) {
         // Check that operand is a function.
         // Stacks are guaranteed to contain values.
+        let funcVal = operandStack.top!
         let funcType = typeStack.top!
         guard case DataType.funcType = funcType else {
             SemanticError.handle(.invalidFuncCall, line: line, col: col)
             return // Dummy return.
         }
+        instructionQueue.push(Quadruple(instruction: .alloc, first: nil, second: nil, res: funcVal))
     }
 
     // Generates quadruples necessary for sending arguments to function calls. If argument count or type does not match
@@ -542,8 +551,7 @@ public class CodeGenerator {
             return // Dummy return.
         }
         // Check that types match.
-        // TODO: Allow casting between float and int.
-        guard paramTypes[pos] == argType else {
+        guard paramTypes[pos] == argType || ExpressionTypeTable.canCast(to: paramTypes[pos], from: argType) else {
             SemanticError.handle(.typeMismatch(expected: paramTypes[pos], received: argType), line: line, col: col)
             return // Dummy return.
         }

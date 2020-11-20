@@ -712,6 +712,7 @@ public class Parser {
                         Get()
                         Expression()
                         codeGenerator.generateArgument(atPosition: argCount, line: t.line, col: t.col)
+                        argCount += 1
                     }
                 }
                 Expect(27 /* ")" */)

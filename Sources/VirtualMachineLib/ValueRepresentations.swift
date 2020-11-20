@@ -26,7 +26,7 @@ public struct FuncValue: Codable {
     }
     // The starting instruction in the function.
     public let instructionPointer: Int
-    let paramCount: Int
+    public let paramCount: Int
     public let paramAddresses: [Int]
     let tempCount: Int
     let constCount: Int

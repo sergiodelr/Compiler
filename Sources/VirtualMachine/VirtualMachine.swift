@@ -157,6 +157,8 @@ public class VirtualMachine {
             case .arg:
                 let val = memory[quad.first!]!
                 argList.append(val)
+            case .alloc:
+                break
             case .call:
                 let funcVal = memory[quad.res!]! as! FuncValue
                 savedInstructionPointers.push(instructionPointer)
@@ -164,11 +166,13 @@ public class VirtualMachine {
                 instructionPointer = funcVal.instructionPointer - 1
                 // Push new local memory, initialize parameters and context. Reset argument list.
                 memory.pushLocal()
-                zip(funcVal.paramAddresses, argList).forEach{(address, value) in
-                    memory[address] = value
+                // Get last elements in argList.
+                let funcArgs = argList[(argList.count - funcVal.paramCount)...]
+                for (address, value) in zip(funcVal.paramAddresses, funcArgs) {
+                    memory[address] = cast(value, toTypeInAddress: address)
                 }
                 importContext(funcVal.context)
-                argList = []
+                argList.removeLast(funcVal.paramCount)
             case .ret:
                 // Save return value, pop local memory and return to previous instruction pointer.
                 returnValue = memory[quad.res!]!
@@ -177,7 +181,7 @@ public class VirtualMachine {
             case .receiveRes:
                 // Set return value to the given memory address.
                 let resultAddress = quad.res!
-                memory[resultAddress] = returnValue
+                memory[resultAddress] = cast(returnValue, toTypeInAddress: resultAddress)
             case .end:
                 break program
             default:
