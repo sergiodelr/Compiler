@@ -14,12 +14,21 @@ public class VirtualMemory: Memory {
     var globalSegment: MemorySegment
     var literalSegment: MemorySegment
     var localSegments: Stack<MemorySegment>
+    var dynamicSegment: MemorySegment
 
     // Public
+    private(set) public var nextDynamicAddress: Int
+
     public init(literals: [Int: Any]) {
         globalSegment = MemorySegment()
         literalSegment = MemorySegment(segmentMemory: literals)
         localSegments = Stack<MemorySegment>()
+        dynamicSegment = MemorySegment()
+        nextDynamicAddress = 0
+
+        // Special case for empty list literal.
+        writeDynamicValue(ListCell(value: nil, next: nil))
+        literalSegment[MemoryPointer.literalStartAddress + MemoryPointer.listStartAddress] = ListValue(value: 0)
     }
 
     subscript(index: Int) -> Any? {
@@ -74,6 +83,19 @@ public class VirtualMemory: Memory {
 
     public func popLocal() {
         localSegments.pop()
+    }
+
+    public func writeDynamicValue(_ value: Any) {
+        dynamicSegment[nextDynamicAddress] = value
+        nextDynamicAddress += 1
+    }
+
+    public func readDynamicValue(inAddress addr: Int) -> Any {
+        if let val = dynamicSegment[addr] {
+            return val
+        }
+        // TODO: Handle error.
+        fatalError("Invalid dynamic address. \(addr)")
     }
 }
 

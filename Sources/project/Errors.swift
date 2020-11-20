@@ -18,6 +18,7 @@ public enum SemanticError: Error {
     case invalidArgCount(expected: Int, received: Int)
     case patternNotImplemented
     case invalidPatternCount(expected: Int, received: Int)
+    case unassignedSymbol
 
     func description() -> String {
         switch self {
@@ -45,6 +46,8 @@ public enum SemanticError: Error {
             return "Invalid operand types for operator. Operator: \(op). Operands: \(left), \(right)"
         case let .operatorTypeMismatchSingle(op, operand):
             return "Invalid operand type for operator. Operator: \(op). Operand: \(operand)"
+        case .unassignedSymbol:
+            return "Unassigned symbol."
         }
     }
 

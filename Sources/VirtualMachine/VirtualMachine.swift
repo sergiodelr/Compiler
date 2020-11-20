@@ -397,50 +397,72 @@ public class VirtualMachine {
     }
 
     func cons(_ left: Int, _ right: Int, resultAddress: Int) {
-        let listValue = ListValue(value: left, next: right)
-        memory[resultAddress] = listValue
+        // First, copy value of first operand to dynamic memory. Save its address.
+        let valDynamicAddress = memory.nextDynamicAddress
+        memory.writeDynamicValue(memory[left]!)
+        // Create new ListCell with value address and next cell address.
+        let listVal = memory[right]! as! ListValue
+        let listCell = ListCell(value: valDynamicAddress, next: listVal.value!)
+        // Create new ListValue pointing to the list cell. Write list cell in dynamic memory.
+        let cellDynamicAddress = memory.nextDynamicAddress
+        memory.writeDynamicValue(listCell)
+        let newListVal = ListValue(value: cellDynamicAddress)
+        memory[resultAddress] = newListVal
     }
 
     func car(_ val: ListValue, resultAddress: Int) {
-        guard let valAddress = val.value else {
+        guard let cellAddr = val.value else {
+            fatalError("Corrupted list.")
+        }
+        guard let listCell = memory.readDynamicValue(inAddress: cellAddr) as? ListCell,
+              listCell.value != nil else {
             fatalError("Empty list")
         }
-        let internalVal = memory[valAddress]!
+        let internalVal = memory.readDynamicValue(inAddress: listCell.value!)
         memory[resultAddress] = internalVal
     }
 
     func cdr(_ val: ListValue, resultAddress: Int) {
-        guard let nextAddress = val.next else {
+        guard let cellAddr = val.value else {
+            fatalError("Corrupted list.")
+        }
+        guard let listCell = memory.readDynamicValue(inAddress: cellAddr) as? ListCell,
+              listCell.value != nil  else {
             fatalError("Empty list")
         }
-        let nextListVal = memory[nextAddress]!
+        let nextListVal = ListValue(value: listCell.next!)
         memory[resultAddress] = nextListVal
     }
 
     // TODO: Implement
     func append(_ left: Any, _ right: Any, resultAddress: Int) {
-        guard let l = left as? ListValue, let r = right as? ListValue else {
-            fatalError("Value error.")
-        }
+        fatalError("Not implemented.")
     }
 
     func printValue(_ val: Any) {
         // Converts the given value to a string.
         func stringVal(_ val: Any) -> String {
-            var result: String
+            var result = String()
             switch val {
-            case var listVal as ListValue:
+            case let listVal as ListValue:
                 result = "["
-                while let addr = listVal.value {
-                    result += stringVal(memory[addr]!) + ", "
-                    listVal = memory[listVal.next!]! as! ListValue
+                guard let cellAddr = listVal.value else {
+                    fatalError("Corrupted list.")
                 }
+                var listCell = memory.readDynamicValue(inAddress: cellAddr) as! ListCell
+
+                result += stringVal(listCell)
                 if result.last == " " {
                     // If last character is a space, remove last space and last comma.
                     result.removeLast()
                     result.removeLast()
                 }
                 result += "]"
+            case var listCell as ListCell:
+                while let valAddress = listCell.value {
+                    result += stringVal(memory.readDynamicValue(inAddress: valAddress)) + ", "
+                    listCell = memory.readDynamicValue(inAddress: listCell.next!) as! ListCell
+                }
             case let v as Int:
                 result = String(v)
             case let v as Float:
@@ -484,7 +506,17 @@ public class VirtualMachine {
     // Writes the result of the given equatable operation to the given address for lists.
     // TODO: Refactor ListValue to conform to Equatable instead.
     func writeEquatableListOperation(equalOperation: Bool, _ l: ListValue, _ r: ListValue, toAddress addr: Int) {
-        let equalLists = equals(l, r)
+        let equalLists: Bool
+        // Check if any list value contains an empty pointer.
+        guard let lVal = l.value, let rVal = r.value else {
+            fatalError("Corrupted lists.")
+        }
+
+        // If not, cells contain values and must be checked.
+        let lCell = memory.readDynamicValue(inAddress: lVal) as! ListCell
+        let rCell = memory.readDynamicValue(inAddress: rVal) as! ListCell
+        equalLists = equals(lCell, rCell)
+
         if equalOperation {
             memory[addr] = equalLists
         } else {
@@ -498,7 +530,7 @@ public class VirtualMachine {
             memory[resultAddress] = op(l, r)
         } else {
             // TODO: Handle error.
-            fatalError("Not implemented.")
+            fatalError("Type error.")
         }
     }
 
@@ -582,7 +614,7 @@ extension VirtualMachine {
 
     // Convenience method for list equality.
     // TODO: Refactor ListValue to conform to Equatable instead.
-    func equals(_ l: ListValue, _ r: ListValue) -> Bool {
+    func equals(_ l: ListCell, _ r: ListCell) -> Bool {
         // Base case: Empty lists.
         if l.value == nil && l.next == nil && r.value == nil && r.next == nil {
             return true
@@ -593,8 +625,8 @@ extension VirtualMachine {
         }
         // If both contain a value, check next nodes recursively.
         if let lValAddr = l.value, let rValAddr = r.value {
-            let lVal = memory[lValAddr]
-            let rVal = memory[rValAddr]
+            let lVal = memory.readDynamicValue(inAddress: lValAddr)
+            let rVal = memory.readDynamicValue(inAddress: rValAddr)
             let equalVal: Bool
 
             switch (lVal, rVal) {
@@ -611,7 +643,14 @@ extension VirtualMachine {
             case let (lCast, rCast) as (Bool, Bool):
                 equalVal = lCast == rCast
             case let (lCast, rCast) as (ListValue, ListValue):
-                equalVal = equals(lCast, rCast)
+                // Check if any list value contains an empty pointer.
+                guard let lVal = lCast.value, let rVal = rCast.value else {
+                    fatalError("Corrupted lists.")
+                }
+                // If not, cells contain values and must be checked.
+                let lCell = memory.readDynamicValue(inAddress: lVal) as! ListCell
+                let rCell = memory.readDynamicValue(inAddress: rVal) as! ListCell
+                equalVal = equals(lCell, rCell)
             default:
                 // TODO: Handle error. Lists not comparable
                 fatalError()
@@ -622,10 +661,10 @@ extension VirtualMachine {
             } else {
                 if let lNextAddr = l.next,
                    let rNextAddr = r.next,
-                   let lNextNode = memory[lNextAddr] as? ListValue,
-                   let rNextNode = memory[rNextAddr] as? ListValue {
+                   let lNextCell = memory.readDynamicValue(inAddress: lNextAddr) as? ListCell,
+                   let rNextCell = memory.readDynamicValue(inAddress: rNextAddr) as? ListCell {
                     // Check next node recursively.
-                    return equals(lNextNode, rNextNode)
+                    return equals(lNextCell, rNextCell)
                 } else {
                     // TODO: Handle error. Corrupted list
                     fatalError()

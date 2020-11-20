@@ -46,16 +46,25 @@ public struct FuncValue: Codable {
 public struct ListValue: Codable, Equatable {
     // List node's value address.
     public let value: Int?
-    // Next node.
-    public var next: Int?
 
-    public init(value: Int?, next: Int?) {
+    public init(value: Int?) {
         self.value = value
-        self.next = next
     }
 
     public init(fromValueEntry entry: ListValueEntry) {
         value = entry.value as! Int?
-        next = entry.next
+    }
+}
+
+// Single list cell in dynamic memory.
+public struct ListCell {
+    // Pointer to cell value.
+    public let value: Int?
+    // Pointer to next cell.
+    public let next: Int?
+
+    public init(value: Int?, next: Int?) {
+        self.value = value
+        self.next = next
     }
 }

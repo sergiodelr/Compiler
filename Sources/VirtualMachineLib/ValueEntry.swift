@@ -57,8 +57,8 @@ public struct FuncValueEntry: ValueEntry {
     }
 }
 
-// ValueEntry for lists. Represents a single list node and contains extra properties to store the internal type and the
-// next node's address.
+// ValueEntry for lists. Represents a pointer to a single list node and contains extra properties to store the internal
+// type and the next node's address.
 public struct ListValueEntry: ValueEntry {
     public let address: Int
     // An address of the contained value.
@@ -66,8 +66,6 @@ public struct ListValueEntry: ValueEntry {
     public var type: DataType {
         return .listType(innerType: .noneType)
     }
-    // The next value's address.
-    public var next: Int? = nil
     public var innerType = DataType.noneType
 
     public init(address: Int, value: Any?) {

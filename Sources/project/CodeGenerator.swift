@@ -227,6 +227,19 @@ public class CodeGenerator {
         let topOperator = operatorStack.pop()!
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
+        if let leftSymbol = symbolTable[leftOperand] {
+            guard leftSymbol.assigned || topOperator == .assgOp else {
+                SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                return // Dummy return.
+            }
+        }
+        if let rightSymbol = symbolTable[rightOperand] {
+            guard rightSymbol.assigned else {
+                SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                return // Dummy return.
+            }
+        }
+
         guard resultType != .errType else {
             SemanticError.handle(.operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
                     line: line,
@@ -274,8 +287,20 @@ public class CodeGenerator {
         let topOperator = operatorStack.pop()!
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
+        if let leftSymbol = symbolTable[leftOperand] {
+            guard leftSymbol.assigned else {
+                SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                return // Dummy return.
+            }
+        }
+        if let rightSymbol = symbolTable[rightOperand] {
+            guard rightSymbol.assigned else {
+                SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                return // Dummy return.
+            }
+        }
+
         guard resultType != .errType else {
-            // TODO: send correct types to error.
             SemanticError.handle(.operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
                     line: line,
                     col: col)
@@ -310,6 +335,19 @@ public class CodeGenerator {
             let topOperator = operatorStack.pop()!
             let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: leftType, type2: rightType)
 
+            if let leftSymbol = symbolTable[leftOperand] {
+                guard leftSymbol.assigned else {
+                    SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                    return // Dummy return.
+                }
+            }
+            if let rightSymbol = symbolTable[rightOperand] {
+                guard rightSymbol.assigned else {
+                    SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                    return // Dummy return.
+                }
+            }
+
             guard resultType != .errType else {
                 SemanticError.handle(
                         .operatorTypeMismatch(op: topOperator, left: leftType, right: rightType),
@@ -320,18 +358,11 @@ public class CodeGenerator {
 
             // Resulting list cell and value to which cell points must be stored in a non-temporary space.
             // TODO: Implement heap-like memory space to store these values.
-            let result = literalAllocator.getNext(resultType)
-            let valueAddress = literalAllocator.getNext(leftType)
-            instructionQueue.push(
-                    Quadruple(
-                            instruction: .assign,
-                            first: leftOperand,
-                            second: nil,
-                            res: valueAddress))
+            let result = tempAllocators.top!.getNext(resultType)
             instructionQueue.push(
                     Quadruple(
                             instruction: langOperatorToVMOperator(op: topOperator),
-                            first: valueAddress,
+                            first: leftOperand,
                             second: rightOperand,
                             res: result))
             operandStack.push(result)
@@ -354,6 +385,13 @@ public class CodeGenerator {
         let operandType = typeStack.pop()!
         let topOperator = operatorStack.pop()!
         let resultType = ExpressionTypeTable.getDataType(op: topOperator, type1: operandType, type2: operandType)
+
+        if let symbol = symbolTable[operand] {
+            guard symbol.assigned else {
+                SemanticError.handle(.unassignedSymbol, line: line, col: col)
+                return // Dummy return.
+            }
+        }
 
         guard resultType != .errType else {
             SemanticError.handle(
@@ -408,6 +446,7 @@ public class CodeGenerator {
 
     // Generates quadruples necessary for the end of an if expression. If intermediate expressions of the if-else
     // expression are not of the same type, an error is thrown.
+    // TODO: Fix temp bug for lists.
     public func generateIfEnd(line: Int, col: Int) {
         // Overwrite result from then expression.
         // Stacks are guaranteed to contain values.
