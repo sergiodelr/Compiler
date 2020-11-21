@@ -274,6 +274,11 @@ public enum ExpressionTypeTable {
 
     // Checks whether two data types are compatible for casting.
     public static func canCast(to type1: DataType, from type2: DataType) -> Bool {
+        if case let DataType.listType(innerType1) = type1,
+           case let DataType.listType(innerType2) = type2,
+           innerType1 != innerType2 && innerType1 != .noneType && innerType2 != .noneType {
+            return false
+        }
         return getDataType(op: .assgOp, type1: type1, type2: type2) != .errType
     }
 
