@@ -436,7 +436,50 @@ public class VirtualMachine {
 
     // TODO: Implement
     func append(_ left: Any, _ right: Any, resultAddress: Int) {
-        fatalError("Not implemented.")
+        guard let leftList = left as? ListValue,
+              let rightList = right as? ListValue,
+              let leftAddr = leftList.value,
+              let rightAddr = rightList.value else {
+            fatalError("Corrupted list.")
+        }
+        let firstLeftCell = memory.readDynamicValue(inAddress: leftAddr) as! ListCell
+
+        let listAddress: Int
+        if firstLeftCell.value == nil {
+            // If first list is empty, assign right cell address.
+            listAddress = rightAddr
+        } else {
+            // Else copy first list and append right cell address at the end.
+            listAddress = copyList(withFirstCell: firstLeftCell, finalAddress: rightAddr)
+        }
+        memory[resultAddress] = ListValue(value: listAddress)
+    }
+
+    // Convenience function to copy the first list and append the second to the copy. First list must not be empty.
+    // Returns address of the resulting list.
+    func copyList(withFirstCell cell: ListCell, finalAddress secondAddress: Int) -> Int {
+        guard let nextAddr = cell.next,
+              let nextCell = memory.readDynamicValue(inAddress: nextAddr) as? ListCell else {
+            fatalError("Corrupted list.")
+        }
+        // Copy value to dynamic memory.
+        let valDynamicAddress = memory.nextDynamicAddress
+        memory.writeDynamicValue(memory.readDynamicValue(inAddress: cell.value!))
+        // Create new ListCell with value address and next cell address.
+        let listCell: ListCell
+        if nextCell.value == nil {
+            // If next cell is empty, append secondAddress.
+            listCell = ListCell(value: valDynamicAddress, next: secondAddress)
+        } else {
+            // Else copy the rest of the list recursively.
+            listCell = ListCell(
+                    value: valDynamicAddress,
+                    next: copyList(withFirstCell: nextCell, finalAddress: secondAddress))
+        }
+
+        let cellDynamicAddress = memory.nextDynamicAddress
+        memory.writeDynamicValue(listCell)
+        return cellDynamicAddress
     }
 
     func printValue(_ val: Any) {

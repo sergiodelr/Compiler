@@ -75,7 +75,6 @@ public class Parser {
     // Code generator
     var codeGenerator: CodeGenerator
 
-    // MARK: Edited method
     public init(scanner: Scanner, codeGenerator: CodeGenerator) {
         self.scanner = scanner
         self.codeGenerator = codeGenerator
@@ -194,7 +193,6 @@ public class Parser {
         codeGenerator.deleteSymbolTable()
     }
 
-    // MARK: Edited method
     // Receives a symbol name and sets its data type, kind, and child table. If entry is of kind lambda, its parameters
     // will be added to its child table (in another method). Adds the symbolEntry to the symbol table.
     func ConstDef(_ name: String) {
@@ -290,7 +288,6 @@ public class Parser {
         return res
     }
 
-    // MARK: Edited method
     // Creates a symbol table for each pattern and sets it as the current one.
     func FuncBody(_ funcType: DataType) {
         // Create symbol table for case.
@@ -309,7 +306,6 @@ public class Parser {
         }
     }
 
-    // MARK: Edited method
     // Returns a simple data type.
     func SimpleType() -> DataType {
         var genId: String? = nil
@@ -678,7 +674,6 @@ public class Parser {
             }
             codeGenerator.pushOperator(op)
         }
-        // TODO: Add true and false literals.
         switch la.kind {
         case _INTCONS:
             Get()

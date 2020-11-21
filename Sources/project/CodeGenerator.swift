@@ -184,7 +184,6 @@ public class CodeGenerator {
     }
 
     // Pushes a list
-    // TODO: Manage memory.
     public func pushList() {
         if let listValueEntry = literalDict["[]"] {
             operandStack.push(listValueEntry.address)
@@ -357,7 +356,6 @@ public class CodeGenerator {
             }
 
             // Resulting list cell and value to which cell points must be stored in a non-temporary space.
-            // TODO: Implement heap-like memory space to store these values.
             let result = tempAllocators.top!.getNext(resultType)
             instructionQueue.push(
                     Quadruple(
@@ -446,7 +444,6 @@ public class CodeGenerator {
 
     // Generates quadruples necessary for the end of an if expression. If intermediate expressions of the if-else
     // expression are not of the same type, an error is thrown.
-    // TODO: Fix temp bug for lists.
     public func generateIfEnd(line: Int, col: Int) {
         // Overwrite result from then expression.
         // Stacks are guaranteed to contain values.
