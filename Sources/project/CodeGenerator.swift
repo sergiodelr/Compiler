@@ -64,6 +64,9 @@ public class CodeGenerator {
     }
 
     // Public
+    // Whether the scope is pure.
+    public var pureScope: Bool
+
     public init() {
         instructionQueue = InstructionQueue()
         operatorStack = Stack<LangOperator>()
@@ -75,7 +78,8 @@ public class CodeGenerator {
         symbolTable = globalTable
         literalDict = [String: ValueEntry]()
         parameters = []
-
+        pureScope = true
+        
         tempAllocators = Stack<TempAddressAllocator>()
         tempAllocators.push(TempAddressAllocator(
                 startAddress: MemoryPointer.tempStartAddress,
@@ -620,6 +624,9 @@ public class CodeGenerator {
 
     // Generates quadruples necessary for read.
     public func generateRead(type: DataType, line: Int, col: Int) {
+        if pureScope {
+            SemanticError.handle(.impureCall, line: line, col: col)
+        }
         let readAddress = tempAllocators.top!.getNext(type)
         instructionQueue.push(Quadruple(instruction: .read, first: nil, second: nil, res: readAddress))
         operandStack.push(readAddress)
@@ -638,11 +645,11 @@ public class CodeGenerator {
         instructionQueue.push(Quadruple(instruction: .end, first: nil, second: nil, res: nil))
     }
 
-    public func save() {
+    public func save(toPath path: String) {
         do {
             let programContainer =
                     try ProgramContainer(instructionQueue: instructionQueue, valueEntries: Array(literalDict.values))
-            try programContainer.save(toFileAtPath: "/home/sergio/Documents/compis/out.txt")
+            try programContainer.save(toFileAtPath: path)
         } catch {
             fatalError("Saving error.")
         }

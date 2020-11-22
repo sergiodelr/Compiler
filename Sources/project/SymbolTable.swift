@@ -60,7 +60,7 @@ public class SymbolTable: CustomDebugStringConvertible {
                 addressToName[entry.address!] = name
             }
 
-            print(String(reflecting: self))
+            // print(String(reflecting: self))
         }
     }
 

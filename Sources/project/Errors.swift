@@ -19,6 +19,7 @@ public enum SemanticError: Error {
     case patternNotImplemented
     case invalidPatternCount(expected: Int, received: Int)
     case unassignedSymbol
+    case impureCall
 
     func description() -> String {
         switch self {
@@ -48,6 +49,8 @@ public enum SemanticError: Error {
             return "Invalid operand type for operator. Operator: \(op). Operand: \(operand)"
         case .unassignedSymbol:
             return "Unassigned symbol."
+        case .impureCall:
+            return "Impure call from pure scope."
         }
     }
 

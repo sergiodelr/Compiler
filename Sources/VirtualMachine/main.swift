@@ -5,10 +5,14 @@
 import Foundation
 import VirtualMachineLib
 
-let f = "/home/sergio/Documents/compis/out.txt"
-let programContainer = ProgramContainer.create(fromFileAtPath: f)
-guard let programContainer = programContainer else {
-    fatalError()
+if CommandLine.argc == 2 {
+    let filePath = CommandLine.arguments[1]
+    let programContainer = ProgramContainer.create(fromFileAtPath: filePath)
+    guard let pc = programContainer else {
+        fatalError("Failed to load program.")
+    }
+    let virtualMachine = VirtualMachine(programContainer: pc)
+    virtualMachine.run()
+} else {
+    print("Expected one argument: program path.")
 }
-let virtualMachine = VirtualMachine(programContainer: programContainer)
-virtualMachine.run()

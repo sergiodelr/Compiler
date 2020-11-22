@@ -135,7 +135,9 @@ public class VirtualMachine {
             case .goToFalse:
                 let val = memory[quad.first!]!
                 guard let boolVal = val as? Bool else {
-                    fatalError("Value error")
+                    ExecutionError.handle(.valueError)
+                    return // Dummy return
+                    return // Dummy return
                 }
                 if !boolVal {
                     let instruction = quad.res!
@@ -144,7 +146,8 @@ public class VirtualMachine {
             case .goToTrue:
                 let val = memory[quad.first!]!
                 guard let boolVal = val as? Bool else {
-                    fatalError("Value error")
+                    ExecutionError.handle(.valueError)
+                    return // Dummy return
                 }
                 if boolVal {
                     let instruction = quad.res!
@@ -185,7 +188,8 @@ public class VirtualMachine {
             case .end:
                 break program
             default:
-                fatalError("Not supported.")
+                ExecutionError.handle(.notSupported)
+                return // Dummy return
             }
             instructionPointer += 1
         }
@@ -203,8 +207,8 @@ public class VirtualMachine {
         case let (l, r) as (Float, Int):
             write(numericOperation: +, l, Float(r), toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -220,8 +224,8 @@ public class VirtualMachine {
         case let (l, r) as (Float, Int):
             write(numericOperation: -, l, Float(r), toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -237,8 +241,8 @@ public class VirtualMachine {
         case let (l, r) as (Float, Int):
             write(numericOperation: *, l, Float(r), toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -254,8 +258,8 @@ public class VirtualMachine {
         case let (l, r) as (Float, Int):
             write(numericOperation: /, l, Float(r), toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -266,8 +270,8 @@ public class VirtualMachine {
         case let v as Float:
             memory[resultAddress] = v
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -275,8 +279,8 @@ public class VirtualMachine {
         if let v = val as? Bool {
             memory[resultAddress] = !v
         } else {
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -297,8 +301,8 @@ public class VirtualMachine {
         case let (l, r) as (ListValue, ListValue):
             writeEquatableListOperation(equalOperation: true, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -319,8 +323,8 @@ public class VirtualMachine {
         case let (l, r) as (ListValue, ListValue):
             writeEquatableListOperation(equalOperation: false, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -337,8 +341,8 @@ public class VirtualMachine {
         case let (l, r) as (String, String):
             write(comparableOperation: <, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -355,8 +359,8 @@ public class VirtualMachine {
         case let (l, r) as (String, String):
             write(comparableOperation: >, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -373,8 +377,8 @@ public class VirtualMachine {
         case let (l, r) as (String, String):
             write(comparableOperation: <=, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -391,8 +395,8 @@ public class VirtualMachine {
         case let (l, r) as (String, String):
             write(comparableOperation: >=, l, r, toAddress: resultAddress)
         default:
-            // TODO: Handle error.
-            fatalError("Not implemented.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -412,11 +416,13 @@ public class VirtualMachine {
 
     func car(_ val: ListValue, resultAddress: Int) {
         guard let cellAddr = val.value else {
-            fatalError("Corrupted list.")
+            ExecutionError.handle(.corruptedList)
+            return // Dummy return
         }
         guard let listCell = memory.readDynamicValue(inAddress: cellAddr) as? ListCell,
               listCell.value != nil else {
-            fatalError("Empty list")
+            ExecutionError.handle(.emptyList)
+            return // Dummy return
         }
         let internalVal = memory.readDynamicValue(inAddress: listCell.value!)
         memory[resultAddress] = internalVal
@@ -424,11 +430,13 @@ public class VirtualMachine {
 
     func cdr(_ val: ListValue, resultAddress: Int) {
         guard let cellAddr = val.value else {
-            fatalError("Corrupted list.")
+            ExecutionError.handle(.corruptedList)
+            return // Dummy return
         }
         guard let listCell = memory.readDynamicValue(inAddress: cellAddr) as? ListCell,
               listCell.value != nil  else {
-            fatalError("Empty list")
+            ExecutionError.handle(.emptyList)
+            return // Dummy return
         }
         let nextListVal = ListValue(value: listCell.next!)
         memory[resultAddress] = nextListVal
@@ -440,7 +448,8 @@ public class VirtualMachine {
               let rightList = right as? ListValue,
               let leftAddr = leftList.value,
               let rightAddr = rightList.value else {
-            fatalError("Corrupted list.")
+            ExecutionError.handle(.corruptedList)
+            return // Dummy return
         }
         let firstLeftCell = memory.readDynamicValue(inAddress: leftAddr) as! ListCell
 
@@ -460,7 +469,8 @@ public class VirtualMachine {
     func copyList(withFirstCell cell: ListCell, finalAddress secondAddress: Int) -> Int {
         guard let nextAddr = cell.next,
               let nextCell = memory.readDynamicValue(inAddress: nextAddr) as? ListCell else {
-            fatalError("Corrupted list.")
+            ExecutionError.handle(.corruptedList)
+            return 0 // Dummy return
         }
         // Copy value to dynamic memory.
         let valDynamicAddress = memory.nextDynamicAddress
@@ -490,7 +500,8 @@ public class VirtualMachine {
             case let listVal as ListValue:
                 result = "["
                 guard let cellAddr = listVal.value else {
-                    fatalError("Corrupted list.")
+                    ExecutionError.handle(.corruptedList)
+                    return String() // Dummy return
                 }
                 var listCell = memory.readDynamicValue(inAddress: cellAddr) as! ListCell
 
@@ -522,12 +533,14 @@ public class VirtualMachine {
 
     func read(_ input: String?, resultAddress: Int) {
         guard let input = input, !input.isEmpty else {
-            fatalError("Read error")
+            ExecutionError.handle(.readError)
+            return // Dummy return
         }
         if let val = castInputString(input, toTypeInAddress: resultAddress) {
             memory[resultAddress] = val
         } else {
-            fatalError("Read error")
+            ExecutionError.handle(.readError)
+            return // Dummy return
         }
     }
 
@@ -552,7 +565,8 @@ public class VirtualMachine {
         let equalLists: Bool
         // Check if any list value contains an empty pointer.
         guard let lVal = l.value, let rVal = r.value else {
-            fatalError("Corrupted lists.")
+            ExecutionError.handle(.corruptedList)
+            return // Dummy return
         }
 
         // If not, cells contain values and must be checked.
@@ -573,7 +587,8 @@ public class VirtualMachine {
             memory[resultAddress] = op(l, r)
         } else {
             // TODO: Handle error.
-            fatalError("Type error.")
+            ExecutionError.handle(.typeError)
+            return // Dummy return
         }
     }
 
@@ -593,7 +608,8 @@ public class VirtualMachine {
         case let v as FuncValue:
             newFuncVal.context.funcValues[addr] = v
         default:
-            fatalError("Value error.")
+            ExecutionError.handle(.valueError)
+            return newFuncVal // Dummy return
         }
         return newFuncVal
     }
@@ -632,7 +648,8 @@ extension VirtualMachine {
             break
         }
         // TODO: Error
-        fatalError("Read error.")
+        ExecutionError.handle(.readError)
+        return 0 // Dummy return
     }
 
     // Casts the given value depending on the address it will be written to.
@@ -688,15 +705,16 @@ extension VirtualMachine {
             case let (lCast, rCast) as (ListValue, ListValue):
                 // Check if any list value contains an empty pointer.
                 guard let lVal = lCast.value, let rVal = rCast.value else {
-                    fatalError("Corrupted lists.")
+                    ExecutionError.handle(.corruptedList)
+                    return false // Dummy return
                 }
                 // If not, cells contain values and must be checked.
                 let lCell = memory.readDynamicValue(inAddress: lVal) as! ListCell
                 let rCell = memory.readDynamicValue(inAddress: rVal) as! ListCell
                 equalVal = equals(lCell, rCell)
             default:
-                // TODO: Handle error. Lists not comparable
-                fatalError()
+                ExecutionError.handle(.listNotComparable)
+                return false // Dummy return
             }
             // If values are not equal, return false.
             if !equalVal {
@@ -709,13 +727,13 @@ extension VirtualMachine {
                     // Check next node recursively.
                     return equals(lNextCell, rNextCell)
                 } else {
-                    // TODO: Handle error. Corrupted list
-                    fatalError()
+                    ExecutionError.handle(.corruptedList)
+                    return false // Dummy return
                 }
             }
         } else {
-            // TODO: Handle error. Corrupted list
-            fatalError()
+            ExecutionError.handle(.corruptedList)
+            return false // Dummy return
         }
     }
 }

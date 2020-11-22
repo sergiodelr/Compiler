@@ -183,6 +183,7 @@ public class Parser {
         codeGenerator.newSymbolTable()
 
         Expect(_DO)
+        codeGenerator.pureScope = false
         while la.kind == _LET || la.kind == _PRINT {
             if la.kind == _LET {
                 ConstDefInter()
@@ -207,10 +208,10 @@ public class Parser {
             Expression()
             codeGenerator.generateTwoOperandsExpQuadruple(op: .assgOp, line: t.line, col: t.col)
         } else if la.kind == _READ {
-            //TODO: Don't allow read statement in global scope.
             Get()
             Expect(26 /* "(" */)
             Expect(27 /* ")" */)
+            SemanticError.handle(.impureCall, line: t.line, col: t.col)
         } else {
             SynErr(49)
         }
@@ -478,7 +479,6 @@ public class Parser {
         if StartOf(1) {
             Expression()
         } else if la.kind == _READ {
-            // TODO: Only allow read in main function.
             Get()
             Expect(26 /* "(" */)
             Expect(27 /* ")" */)
@@ -764,7 +764,11 @@ public class Parser {
         Comp()
         Expect(_EOF)
         codeGenerator.generateProgramEnd()
-        codeGenerator.save()
+    }
+
+    // Saves the generated code to the specified path.
+    public func save(toPath path: String) {
+        codeGenerator.save(toPath: path)
     }
 
     func set(_ x: Int, _ y: Int) -> Bool {
