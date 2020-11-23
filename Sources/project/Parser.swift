@@ -719,9 +719,30 @@ public class Parser {
         case 26 /* "(" */:
             Get()
             codeGenerator.pushOperator(.placeholderOp) // False bottom of operator stack.
-            SimpleExp()
+            Expression()
             Expect(27 /* ")" */)
             codeGenerator.popOperator() // Remove false bottom.
+            // Allow inline lambda call.
+            if la.kind == 26 /* "(" */ {
+                Get()
+                var argCount = 0
+                codeGenerator.generateFuncCallStart(line: t.line, col: t.col)
+                codeGenerator.pushOperator(.placeholderOp) // False stack bottom.
+                if StartOf(1) {
+                    Expression()
+                    codeGenerator.generateArgument(atPosition: argCount, line: t.line, col: t.col)
+                    argCount += 1
+                    while la.kind == 30 /* "," */ {
+                        Get()
+                        Expression()
+                        codeGenerator.generateArgument(atPosition: argCount, line: t.line, col: t.col)
+                        argCount += 1
+                    }
+                }
+                Expect(27 /* ")" */)
+                codeGenerator.generateFuncCallEnd(argCount: argCount, line: t.line, col: t.col)
+                codeGenerator.popOperator() // Pop false stack bottom.
+            }
         default:
             SynErr(56)
         }
