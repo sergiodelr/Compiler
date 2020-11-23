@@ -56,8 +56,19 @@ public enum SemanticError: Error {
 
     // Displays error message and stops execution. All semantic errors are considered fatal.
     public static func handle(_ err: SemanticError, line: Int? = nil, col: Int? = nil) {
-        let errDescription = "Error at line: \(String(describing: line)), col: \(String(describing: col)). " +
+        let errDescription = "Error at line: \(String(line)), col: \(String(col)). " +
                 err.description()
         fatalError(errDescription)
+    }
+}
+
+// Convenience initializer for optional Ints.
+extension String {
+    init(_ optionalInt: Int?) {
+        if let value = optionalInt {
+            self = String(value)
+        } else {
+            self = " "
+        }
     }
 }
