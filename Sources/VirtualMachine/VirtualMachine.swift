@@ -250,12 +250,28 @@ public class VirtualMachine {
         // Contents of memory must be cast before their use. Same for every other operations.
         switch (left, right) {
         case let (l, r) as (Int, Int):
+            guard r != 0 else {
+                ExecutionError.handle(.valueError)
+                return // Dummy return.
+            }
             write(numericOperation: /, l, r, toAddress: resultAddress)
         case let (l, r) as (Int, Float):
+            guard r != 0 else {
+                ExecutionError.handle(.valueError)
+                return // Dummy return.
+            }
             write(numericOperation: /, Float(l), r, toAddress: resultAddress)
         case let (l, r) as (Float, Float):
+            guard r != 0 else {
+                ExecutionError.handle(.valueError)
+                return // Dummy return.
+            }
             write(numericOperation: /, l, r, toAddress: resultAddress)
         case let (l, r) as (Float, Int):
+            guard r != 0 else {
+                ExecutionError.handle(.valueError)
+                return // Dummy return.
+            }
             write(numericOperation: /, l, Float(r), toAddress: resultAddress)
         default:
             ExecutionError.handle(.typeError)
