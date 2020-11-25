@@ -8,6 +8,7 @@ if CommandLine.arguments.count == 3 {
         let parser = Parser(scanner: scanner, codeGenerator: codeGenerator)
         parser.Parse()
         if (parser.errors.count == 0) {
+            codeGenerator.printQueue()
             parser.save(toPath: outputPath)
         }
     } else {

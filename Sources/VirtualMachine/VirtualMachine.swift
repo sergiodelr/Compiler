@@ -266,9 +266,9 @@ public class VirtualMachine {
     func negative(_ val: Any, resultAddress: Int) {
         switch val {
         case let v as Int:
-            memory[resultAddress] = v
+            memory[resultAddress] = -v
         case let v as Float:
-            memory[resultAddress] = v
+            memory[resultAddress] = -v
         default:
             ExecutionError.handle(.typeError)
             return // Dummy return
